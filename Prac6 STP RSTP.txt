@@ -1,0 +1,131 @@
+PRACTICAL 6 - STP / RSTP
+
+ADDRESSING / TOPOLOGY
+
+D1 VLAN 1: 10.0.0.1 /8 (as written)
+D2 VLAN 1: 10.0.0.2 /8 (as written)
+
+D1:
+G1/0/1 and G1/0/5-6 - switch links
+
+D2:
+G1/0/1 and G1/0/5-6 - switch links
+
+A1:
+F0/1-F0/4 - trunk ports as written
+
+
+D1
+
+enable
+configure terminal
+hostname D1
+spanning-tree mode pvst
+banner motd # D1 any text #
+line con 0
+exec-timeout 0 0
+logging synchronous
+exit
+interface range g1/0/11 - 24
+shutdown
+exit
+interface range g1/0/1, g1/0/5 - 6
+switchport mode trunk
+no shutdown
+exit
+vlan 2
+name SECONDVLAN
+exit
+interface vlan 1
+ip address 10.0.0.1 255.0.0.0
+no shutdown
+exit
+end
+show ip int br
+show spanning-tree
+
+
+D2
+
+enable
+configure terminal
+hostname D2
+banner motd # D2 any text #
+spanning-tree mode pvst
+line con 0
+exec-timeout 0 0
+logging synchronous
+exit
+interface range g1/0/1, g1/0/5 - 6
+switchport mode trunk
+no shutdown
+exit
+vlan 2
+name SECONDVLAN
+exit
+interface vlan 1
+ip address 10.0.0.2 255.0.0.0
+no shutdown
+exit
+
+
+A1
+
+enable
+configure terminal
+hostname A1
+banner motd # A1 any text #
+spanning-tree mode pvst
+line con 0
+exec-timeout 0 0
+logging synchronous
+exit
+interface range f0/1 - 24, g1/0/1 - 2
+shutdown
+exit
+interface range f0/1 - 4
+switchport mode trunk
+no shutdown
+exit
+
+
+⚠️ CHECK THIS COMMAND:
+spanning-tree mode pvst
+
+The practical is labelled STP/RSTP, but PVST is not RSTP. If the practical specifically requires RSTP, use:
+spanning-tree mode rapid-pvst
+
+The handwritten command is preserved above.
+
+
+⚠️ CHECK:
+ip address 10.0.0.1 255.0.0.0
+ip address 10.0.0.2 255.0.0.0
+
+These use a /8 mask. If the addressing table specifies /24, use:
+ip address 10.0.0.1 255.255.255.0
+ip address 10.0.0.2 255.255.255.0
+
+The handwritten commands are preserved above.
+
+
+⚠️ CHECK:
+interface range g1/0/11 - 24
+interface range g1/0/1, g1/0/5 - 6
+interface range f0/1 - 24, g1/0/1 - 2
+interface range f0/1 - 4
+
+These depend on the exact switch model and physical topology. Verify that the interfaces exist and match the connections.
+
+
+⚠️ CHECK:
+interface range f0/1 - 4
+switchport mode trunk
+
+The handwritten page indicates these ports as trunk ports. Verify that all four ports are actually switch-to-switch/uplink connections before using this range.
+
+
+VERIFICATION
+
+show ip interface brief
+show spanning-tree

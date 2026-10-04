@@ -1,0 +1,652 @@
+PRACTICAL 2 - CONFIGURING AND VERIFYING STANDARD IPv4 ACLs
+===============================================================
+
+TOPOLOGY / CONNECTIONS
+----------------------
+
+Devices required:
+- R1
+- ISP
+- R3
+- S1
+- S3
+- PC-A
+- PC-C
+
+Physical connections:
+
+1. PC-A NIC -> S1 Ethernet port
+2. S1 -> R1 G0/1 using Ethernet cable
+3. R1 S0/0/0 -> ISP S0/0/0 using Serial cable
+4. ISP S0/0/1 -> R3 S0/0/1 using Serial cable
+5. R3 G0/1 -> S3 using Ethernet cable
+6. S3 -> PC-C NIC using Ethernet cable
+
+Logical topology:
+
+PC-A ---- S1 ---- R1 ===== ISP ===== R3 ---- S3 ---- PC-C
+                    Serial       Serial
+                    S0/0/0       S0/0/1
+
+
+ADDRESSING TABLE
+----------------
+
+R1:
+G0/1       192.168.10.1    255.255.255.0
+Lo0        192.168.20.1    255.255.255.0
+S0/0/0     10.1.1.1        255.255.255.252
+
+ISP:
+S0/0/0     10.1.1.2        255.255.255.252
+S0/0/1     10.2.2.2        255.255.255.252
+Lo0        209.165.200.225 255.255.255.224
+
+R3:
+G0/1       192.168.30.1    255.255.255.0
+Lo0        192.168.40.1    255.255.255.0
+S0/0/1     10.2.2.1        255.255.255.252
+
+S1:
+VLAN 1     192.168.10.11   255.255.255.0
+Gateway    192.168.10.1
+
+S3:
+VLAN 1     192.168.30.11   255.255.255.0
+Gateway    192.168.30.1
+
+PC-A:
+IP         192.168.10.3
+Mask       255.255.255.0
+Gateway    192.168.10.1
+
+PC-C:
+IP         192.168.30.3
+Mask       255.255.255.0
+Gateway    192.168.30.1
+
+
+IMPORTANT INTERFACE NOTE
+------------------------
+
+If your Packet Tracer router uses a different serial interface name, use the
+actual interface shown by "show ip interface brief".
+
+For example:
+S0/0/0 may appear as S1/0 on some router models.
+S0/0/1 may also have a different identifier.
+
+The commands below use the interfaces from the Practical 2 addressing table.
+
+
+R1 - BASIC CONFIGURATION
+------------------------
+
+enable
+configure terminal
+no ip domain-lookup
+hostname R1
+service password-encryption
+enable secret class
+banner motd #
+Unauthorized access is strictly prohibited.#
+line console 0
+password cisco
+login
+logging synchronous
+exit
+line vty 0 4
+password cisco
+login
+exit
+interface loopback 0
+ip address 192.168.20.1 255.255.255.0
+exit
+interface gigabitEthernet 0/1
+ip address 192.168.10.1 255.255.255.0
+no shutdown
+exit
+interface serial 0/0/0
+ip address 10.1.1.1 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+end
+copy running-config startup-config
+
+
+ISP - BASIC CONFIGURATION
+-------------------------
+
+enable
+configure terminal
+no ip domain-lookup
+hostname ISP
+service password-encryption
+enable secret class
+banner motd #
+Unauthorized access is strictly prohibited.#
+line console 0
+password cisco
+login
+logging synchronous
+exit
+line vty 0 4
+password cisco
+login
+exit
+interface loopback 0
+ip address 209.165.200.225 255.255.255.224
+exit
+interface serial 0/0/0
+ip address 10.1.1.2 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+interface serial 0/0/1
+ip address 10.2.2.2 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+end
+copy running-config startup-config
+
+
+R3 - BASIC CONFIGURATION
+------------------------
+
+enable
+configure terminal
+no ip domain-lookup
+hostname R3
+service password-encryption
+enable secret class
+banner motd #
+Unauthorized access is strictly prohibited.#
+line console 0
+password cisco
+login
+logging synchronous
+exit
+line vty 0 4
+password cisco
+login
+exit
+interface loopback 0
+ip address 192.168.40.1 255.255.255.0
+exit
+interface gigabitEthernet 0/1
+ip address 192.168.30.1 255.255.255.0
+no shutdown
+exit
+interface serial 0/0/1
+ip address 10.2.2.1 255.255.255.252
+no shutdown
+exit
+end
+copy running-config startup-config
+
+
+S1 - BASIC CONFIGURATION
+------------------------
+
+enable
+configure terminal
+no ip domain-lookup
+hostname S1
+service password-encryption
+enable secret class
+banner motd #
+Unauthorized access is strictly prohibited.#
+line console 0
+password cisco
+login
+logging synchronous
+exit
+line vty 0 15
+password cisco
+login
+exit
+interface vlan 1
+ip address 192.168.10.11 255.255.255.0
+no shutdown
+exit
+ip default-gateway 192.168.10.1
+end
+copy running-config startup-config
+
+
+S3 - BASIC CONFIGURATION
+------------------------
+
+enable
+configure terminal
+no ip domain-lookup
+hostname S3
+service password-encryption
+enable secret class
+banner motd #
+Unauthorized access is strictly prohibited.#
+line console 0
+password cisco
+login
+logging synchronous
+exit
+line vty 0 15
+password cisco
+login
+exit
+interface vlan 1
+ip address 192.168.30.11 255.255.255.0
+no shutdown
+exit
+ip default-gateway 192.168.30.1
+end
+copy running-config startup-config
+
+
+PC-A CONFIGURATION
+------------------
+
+Desktop -> IP Configuration
+
+IP Address:      192.168.10.3
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.10.1
+
+
+PC-C CONFIGURATION
+------------------
+
+Desktop -> IP Configuration
+
+IP Address:      192.168.30.3
+Subnet Mask:     255.255.255.0
+Default Gateway: 192.168.30.1
+
+
+RIP VERSION 2 - R1
+------------------
+
+enable
+configure terminal
+router rip
+version 2
+network 192.168.10.0
+network 192.168.20.0
+network 10.1.1.0
+no auto-summary
+end
+copy running-config startup-config
+
+
+RIP VERSION 2 - ISP
+-------------------
+
+enable
+configure terminal
+router rip
+version 2
+network 209.165.200.0
+network 10.1.1.0
+network 10.2.2.0
+no auto-summary
+end
+copy running-config startup-config
+
+
+RIP VERSION 2 - R3
+------------------
+
+enable
+configure terminal
+router rip
+version 2
+network 192.168.30.0
+network 192.168.40.0
+network 10.2.2.0
+no auto-summary
+end
+copy running-config startup-config
+
+
+VERIFY RIP
+----------
+
+On R1:
+show ip protocols
+show ip route
+show ip route rip
+
+On ISP:
+show ip protocols
+show ip route
+show ip route rip
+
+On R3:
+show ip protocols
+show ip route
+show ip route rip
+
+
+BASIC CONNECTIVITY TEST
+-----------------------
+
+From PC-A:
+
+ping 192.168.30.3
+ping 192.168.40.1
+
+From R1:
+
+ping 192.168.30.3
+ping 192.168.40.1
+
+From PC-C:
+
+ping 192.168.10.3
+ping 192.168.20.1
+
+From R3:
+
+ping 192.168.10.3
+ping 192.168.20.1
+
+Make sure connectivity works BEFORE applying the ACLs.
+
+
+PART 3 - NUMBERED STANDARD ACL
+==============================
+
+The policy is:
+Allow all hosts from 192.168.10.0/24 and 192.168.20.0/24
+to access 192.168.30.0/24.
+
+The wildcard mask for a /24 network is:
+0.0.0.255
+
+Configure ACL 1 on R3.
+
+
+R3 - NUMBERED ACL 1
+-------------------
+
+enable
+configure terminal
+access-list 1 remark Allow R1 LANs Access
+access-list 1 permit 192.168.10.0 0.0.0.255
+access-list 1 permit 192.168.20.0 0.0.0.255
+access-list 1 deny any
+interface gigabitEthernet 0/1
+ip access-group 1 out
+end
+copy running-config startup-config
+
+
+VERIFY NUMBERED ACL
+-------------------
+
+On R3:
+
+show access-lists 1
+
+Expected entries:
+
+10 permit 192.168.10.0 0.0.0.255
+20 permit 192.168.20.0 0.0.0.255
+30 deny any
+
+Check ACL placement:
+
+show ip interface gigabitEthernet 0/1
+
+Expected:
+Outgoing access list is 1
+Inbound access list is not set
+
+
+TEST NUMBERED ACL
+-----------------
+
+From PC-A:
+
+ping 192.168.30.3
+
+This should succeed.
+
+From R1, perform an extended ping using Loopback0 as source:
+
+R1# ping
+
+Protocol [ip]:
+Target IP address: 192.168.30.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 192.168.20.1
+
+Press Enter for the remaining default options.
+
+This should succeed.
+
+Now from R1:
+
+ping 192.168.30.3
+
+This normal ping uses R1's G0/1 source address 192.168.10.1,
+so it should succeed because 192.168.10.0/24 is permitted.
+
+
+PART 3 - NAMED STANDARD ACL
+===========================
+
+Policy:
+1. Allow PC-C (192.168.30.3) to access 192.168.10.0/24.
+2. Allow all hosts from 192.168.40.0/24 to access 192.168.10.0/24.
+
+The named ACL is:
+BRANCH-OFFICE-POLICY
+
+Configure it on R1 and apply it OUT on G0/1.
+
+
+R1 - NAMED ACL
+--------------
+
+enable
+configure terminal
+ip access-list standard BRANCH-OFFICE-POLICY
+permit host 192.168.30.3
+permit 192.168.40.0 0.0.0.255
+exit
+interface gigabitEthernet 0/1
+ip access-group BRANCH-OFFICE-POLICY out
+end
+copy running-config startup-config
+
+
+VERIFY NAMED ACL
+----------------
+
+On R1:
+
+show access-lists
+
+Expected:
+
+Standard IP access list BRANCH-OFFICE-POLICY
+10 permit 192.168.30.3
+20 permit 192.168.40.0 0.0.0.255
+
+Check placement:
+
+show ip interface gigabitEthernet 0/1
+
+Expected:
+Outgoing access list is BRANCH-OFFICE-POLICY
+Inbound access list is not set
+
+
+TEST NAMED ACL
+--------------
+
+1. From PC-C:
+
+ping 192.168.10.3
+
+This should succeed.
+
+2. From R3, perform an extended ping using G0/1 as source:
+
+R3# ping
+
+Protocol [ip]:
+Target IP address: 192.168.10.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 192.168.30.1
+
+Press Enter for the remaining default options.
+
+This should NOT be allowed if the source is 192.168.30.1 because
+the ACL specifically permits host 192.168.30.3, not the entire
+192.168.30.0/24 network.
+
+3. From R3, perform another extended ping using Loopback0 as source:
+
+R3# ping
+
+Protocol [ip]:
+Target IP address: 192.168.10.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 192.168.40.1
+
+Press Enter for the remaining default options.
+
+This should succeed because 192.168.40.0/24 is permitted.
+
+
+PART 4 - MODIFY NAMED STANDARD ACL
+===================================
+
+New policy:
+Allow the 209.165.200.224/27 network full access to
+192.168.10.0/24.
+
+Also add an explicit deny any at the end of the ACL.
+
+
+R1 - MODIFY BRANCH-OFFICE-POLICY
+--------------------------------
+
+enable
+configure terminal
+ip access-list standard BRANCH-OFFICE-POLICY
+30 permit 209.165.200.224 0.0.0.31
+40 deny any
+end
+copy running-config startup-config
+
+
+VERIFY MODIFIED ACL
+-------------------
+
+show access-lists
+
+Expected:
+
+Standard IP access list BRANCH-OFFICE-POLICY
+10 permit 192.168.30.3
+20 permit 192.168.40.0, wildcard bits 0.0.0.255
+30 permit 209.165.200.224, wildcard bits 0.0.0.31
+40 deny any
+
+
+TEST MODIFIED ACL
+-----------------
+
+From ISP, perform an extended ping.
+
+ISP# ping
+
+Protocol [ip]:
+Target IP address: 192.168.10.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 209.165.200.225
+
+Press Enter for the remaining default options.
+
+This should succeed because 209.165.200.225 belongs to the
+209.165.200.224/27 network.
+
+
+FINAL VERIFICATION COMMANDS
+===========================
+
+R1:
+show ip interface brief
+show ip protocols
+show ip route
+show ip route rip
+show access-lists
+show ip interface gigabitEthernet 0/1
+show running-config
+
+ISP:
+show ip interface brief
+show ip protocols
+show ip route
+show ip route rip
+show running-config
+
+R3:
+show ip interface brief
+show ip protocols
+show ip route
+show ip route rip
+show access-lists 1
+show ip interface gigabitEthernet 0/1
+show running-config
+
+S1:
+show ip interface brief
+show running-config
+
+S3:
+show ip interface brief
+show running-config
+
+
+IMPORTANT ACL NOTES
+===================
+
+1. Standard ACLs filter traffic based only on the SOURCE IP address.
+
+2. The practical recommends placing the standard ACL as close to the
+   destination as possible.
+
+3. ACL 1 is placed on R3 G0/1 OUT.
+
+4. BRANCH-OFFICE-POLICY is placed on R1 G0/1 OUT.
+
+5. An explicit "deny any" is added at the end of the ACLs where required
+   by the practical.
+
+6. Always test connectivity before applying ACLs.
+
+7. If an ACL is already applied and you need to modify it, use:
+   ip access-list standard BRANCH-OFFICE-POLICY
+
+8. Do not configure ACLs on the ISP router.
+
+
+END OF PRACTICAL 2

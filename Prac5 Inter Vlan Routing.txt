@@ -1,0 +1,222 @@
+PRACTICAL 5 - INTER-VLAN ROUTING
+
+TOPOLOGY / ADDRESSING
+
+R1 Fa0/0 -> S1 Fa0/1
+S1 Fa0/2 -> S2 Fa0/1
+
+PC on S1 -> VLAN 20
+PC IP: 192.168.20.3
+Default Gateway: 192.168.20.1
+
+PC on S2 -> VLAN 30
+PC IP: 192.168.30.3
+Default Gateway: 192.168.30.1
+
+VLAN 10 - Management
+VLAN 20 - Sales
+VLAN 30 - Operations
+VLAN 999 - Parkinglot
+VLAN 1000 - Native
+
+R1 SUBINTERFACES
+192.168.10.1/24 - VLAN 10
+192.168.20.1/24 - VLAN 20
+192.168.30.1/24 - VLAN 30
+
+S1 MANAGEMENT
+192.168.10.11/24
+Default gateway: 192.168.10.1
+
+S2 MANAGEMENT
+192.168.10.12/24
+Default gateway: 192.168.10.1
+
+
+S1
+
+enable
+configure terminal
+hostname S1
+vlan 10
+name management
+exit
+vlan 20
+name sales
+exit
+vlan 30
+name operations
+exit
+vlan 999
+name parkinglot
+exit
+vlan 1000
+name native
+exit
+interface vlan 10
+ip address 192.168.10.11 255.255.255.0
+exit
+ip default-gateway 192.168.10.1
+no shutdown
+show vlan brief
+
+interface range f0/4 - 27 , g0/1 - 2
+switchport mode access
+switchport access vlan 999
+shutdown
+exit
+show vlan brief
+
+interface f0/1
+switchport mode trunk
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,30,1000
+exit
+show vlan brief
+show interfaces trunk
+
+
+S2
+
+enable
+configure terminal
+hostname S2
+vlan 10
+name management
+exit
+vlan 20
+name sales
+exit
+vlan 30
+name operations
+exit
+vlan 999
+name parkinglot
+exit
+vlan 1000
+name native
+exit
+interface vlan 10
+ip address 192.168.10.12 255.255.255.0
+exit
+ip default-gateway 192.168.10.1
+interface vlan 10
+no shutdown
+exit
+shutdown all remaining ports
+interface range f0/3 - 29 , g0/1 - 2
+switchport mode access
+switchport access vlan 999
+shutdown
+exit
+show vlan brief
+
+interface f0/2
+switchport mode access
+switchport access vlan 30
+exit
+show vlan brief
+
+
+S1 - TRUNK TO S2
+
+interface f0/2
+switchport mode trunk
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,30,1000
+exit
+
+
+S2 - TRUNK TO S1
+
+interface f0/1
+switchport mode trunk
+switchport trunk native vlan 1000
+switchport trunk allowed vlan 10,20,30,1000
+exit
+show vlan brief
+show interfaces trunk
+
+
+S1 - PC ACCESS PORT
+
+interface f0/3
+switchport mode access
+switchport access vlan 20
+exit
+show vlan brief
+
+
+R1 - ROUTER-ON-A-STICK
+
+enable
+configure terminal
+interface f0/0
+no shutdown
+exit
+
+interface f0/0.10
+description vlan 10
+encapsulation dot1q 10
+ip address 192.168.10.1 255.255.255.0
+exit
+
+interface f0/0.20
+description vlan 20
+encapsulation dot1q 20
+ip address 192.168.20.1 255.255.255.0
+exit
+
+interface f0/0.30
+description vlan 30
+encapsulation dot1q 30
+ip address 192.168.30.1 255.255.255.0
+exit
+
+interface f0/0.1000
+description native
+encapsulation dot1q 1000
+exit
+
+interface f0/0
+no shutdown
+exit
+
+show ip interface brief
+
+
+⚠️ CHECK THESE COMMANDS / ITEMS FROM THE HANDWRITTEN PAGE
+
+interface range f0/4 - 27 , g0/1 - 2
+
+Reason: Cisco IOS interface-range syntax and available interfaces depend on the switch model. The handwritten notes use both FastEthernet and GigabitEthernet ranges. If the switch does not have g0/1 or g0/2, those interfaces will fail. Configure only interfaces that actually exist on your switch.
+
+⚠️ CHECK:
+shutdown all remaining ports
+
+Reason: This is an instruction/note, not a Cisco IOS command. It should NOT be entered literally at the CLI. The actual interface-range commands below it perform the shutdown.
+
+⚠️ CHECK:
+interface range f0/3 - 29 , g0/1 - 2
+
+Reason: Same interface-availability issue as above. Verify the S2 model and use only existing ports.
+
+⚠️ CHECK:
+interface f0/1
+interface f0/2
+
+The exact trunk/access port numbers must match the physical topology. From the handwritten topology, R1-S1, S1-S2, and the PC ports are assigned to specific FastEthernet ports; verify them against your Packet Tracer/GNS3 topology.
+
+⚠️ CHECK:
+interface f0/0.1000
+encapsulation dot1q 1000
+
+The notes use VLAN 1000 as the native VLAN on the switches, but the router subinterface is written without the `native` keyword. If VLAN 1000 is intended to be the native VLAN on the router-on-a-stick link, the router configuration should normally be:
+
+interface f0/0.1000
+encapsulation dot1q 1000 native
+
+The handwritten command is retained above and flagged rather than removed.
+
+IMPORTANT:
+The router's physical interface must be up (`no shutdown`), while the individual subinterfaces provide the VLAN gateway IP addresses. IEEE 802.1Q router-on-a-stick configuration uses subinterfaces with `encapsulation dot1q` and IP addresses for the VLAN gateways.

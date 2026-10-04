@@ -1,0 +1,71 @@
+PRACTICAL 3 - IP SLA (GNS3)
+
+TOPOLOGY / ADDRESSING
+
+R1 ---------------- R2
+
+R1 Serial1/0: 192.168.1.1/30
+R2 Serial1/0: 192.168.1.2/30
+R2 Loopback0: 192.168.10.1/32
+Serial Network: 192.168.1.0/30
+IP SLA Target: 192.168.10.1
+
+
+R1 CONFIGURATION
+
+enable
+configure terminal
+hostname R1
+interface s1/0
+ip address 192.168.1.1 255.255.255.252
+no shutdown
+exit
+ip route 0.0.0.0 0.0.0.0 192.168.1.2
+end
+
+
+R2 CONFIGURATION
+
+enable
+configure terminal
+hostname R2
+no ip domain-lookup
+interface s1/0
+ip address 192.168.1.2 255.255.255.252
+clock rate 4032000
+⚠️ CHECK: clock rate 4032000
+This value may be rejected by some Cisco IOS/GNS3 images. If rejected, use a supported value such as:
+clock rate 4000000
+
+⚠️ IMPORTANT: Configure clock rate only on the DCE side of the serial link.
+
+no shutdown
+exit
+interface loopback 0
+ip address 192.168.10.1 255.255.255.255
+no shutdown
+exit
+end
+
+
+IP SLA CONFIGURATION - R1
+
+enable
+configure terminal
+ip sla 22
+icmp-echo 192.168.10.1
+frequency 20
+exit
+ip sla schedule 22 start-time now life forever
+end
+
+
+PING TEST - R1
+
+ping 192.168.10.1
+
+
+VERIFICATION - R1
+
+show ip sla configuration
+show ip sla statistics

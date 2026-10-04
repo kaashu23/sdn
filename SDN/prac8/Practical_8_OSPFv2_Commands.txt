@@ -1,0 +1,1048 @@
+PRACTICAL 8
+LAB - CONFIGURE SINGLE-AREA OSPFv2
+Commands, Connections, Small Topology Diagram and Verification
+
+============================================================
+QUICK TOPOLOGY DIAGRAM - USE THIS TO BUILD THE NETWORK
+============================================================
+
+                         Loopback1
+                       172.16.1.1/24
+                            |
+                         +-----+
+                         | R1  |
+                         +-----+
+                         G0/0/1
+                       10.53.0.1/24
+                            |
+                          G0/0/1
+                         +-----+
+                         | S1  |
+                         +-----+
+                          F0/1
+                            |
+                          F0/1
+                         +-----+
+                         | S2  |
+                         +-----+
+                          F0/5
+                            |
+                          G0/0/1
+                         +-----+
+                         | R2  |
+                         +-----+
+                       10.53.0.2/24
+                            |
+                       Loopback1
+                       192.168.1.1/24
+
+PORT-BY-PORT CONNECTIONS:
+
+R1 G0/0/1  <---------->  S1 F0/5
+S1 F0/1    <---------->  S2 F0/1
+S2 F0/5    <---------->  R2 G0/0/1
+
+LOOPBACKS:
+R1 Loopback1 = 172.16.1.1/24
+R2 Loopback1 = 192.168.1.1/24
+
+IMPORTANT:
+The topology/addressing table in the source uses Cisco 4221 interfaces
+G0/0/1. The command appendix at the end of the source uses F0/0.
+For a Cisco 4221 Packet Tracer topology, use G0/0/1 as shown above.
+If your selected router model has F0/0 instead, use its equivalent
+Ethernet interface.
+
+============================================================
+1. OBJECTIVES
+============================================================
+
+Part 1: Build the Network and Configure Basic Device Settings
+
+Part 2: Configure and Verify Single-Area OSPFv2 for basic operation
+
+Part 3: Optimize and Verify the Single-Area OSPFv2 configuration
+
+============================================================
+2. ADDRESSING TABLE
+============================================================
+
+R1 G0/0/1
+IP Address: 10.53.0.1
+Subnet Mask: 255.255.255.0
+
+R1 Loopback1
+IP Address: 172.16.1.1
+Subnet Mask: 255.255.255.0
+
+R2 G0/0/1
+IP Address: 10.53.0.2
+Subnet Mask: 255.255.255.0
+
+R2 Loopback1
+IP Address: 192.168.1.1
+Subnet Mask: 255.255.255.0
+
+OSPF Process ID:
+56
+
+R1 Router ID:
+1.1.1.1
+
+R2 Router ID:
+2.2.2.2
+
+OSPF Area:
+0
+
+============================================================
+3. PART 1 - BASIC R1 CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+
+banner motd #Unauthorized access is prohibited!#
+
+end
+write memory
+
+============================================================
+4. PART 1 - BASIC R2 CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname R2
+no ip domain-lookup
+
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+
+banner motd #Unauthorized access is prohibited!#
+
+end
+write memory
+
+============================================================
+5. PART 1 - BASIC S1 CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname S1
+no ip domain-lookup
+
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+
+banner motd #Unauthorized access is prohibited!#
+
+end
+write memory
+
+============================================================
+6. PART 1 - BASIC S2 CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname S2
+no ip domain-lookup
+
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+
+banner motd #Unauthorized access is prohibited!#
+
+end
+write memory
+
+============================================================
+7. R1 - CONFIGURE G0/0/1
+============================================================
+
+enable
+configure terminal
+
+interface gigabitethernet0/0/1
+ip address 10.53.0.1 255.255.255.0
+no shutdown
+exit
+
+============================================================
+8. R1 - CONFIGURE LOOPBACK1
+============================================================
+
+interface loopback1
+ip address 172.16.1.1 255.255.255.0
+exit
+
+end
+write memory
+
+============================================================
+9. R2 - CONFIGURE G0/0/1
+============================================================
+
+enable
+configure terminal
+
+interface gigabitethernet0/0/1
+ip address 10.53.0.2 255.255.255.0
+no shutdown
+exit
+
+============================================================
+10. R2 - CONFIGURE LOOPBACK1
+============================================================
+
+interface loopback1
+ip address 192.168.1.1 255.255.255.0
+exit
+
+end
+write memory
+
+============================================================
+11. VERIFY INTERFACES
+============================================================
+
+On R1:
+
+show ip interface brief
+
+On R2:
+
+show ip interface brief
+
+Expected:
+
+R1 G0/0/1 = 10.53.0.1
+R1 Loopback1 = 172.16.1.1
+
+R2 G0/0/1 = 10.53.0.2
+R2 Loopback1 = 192.168.1.1
+
+Test the directly connected routers:
+
+R1:
+ping 10.53.0.2
+
+R2:
+ping 10.53.0.1
+
+============================================================
+12. PART 2 - CONFIGURE OSPF ON R1
+============================================================
+
+The source specifies OSPF process ID 56 and router ID 1.1.1.1.
+
+On R1:
+
+enable
+configure terminal
+
+router ospf 56
+router-id 1.1.1.1
+network 10.53.0.0 0.0.0.255 area 0
+exit
+
+end
+write memory
+
+IMPORTANT:
+At this stage, the source does NOT advertise R1 Loopback1 into OSPF.
+R1's Loopback1 is used later as the exit interface for the default
+static route.
+
+============================================================
+13. PART 2 - CONFIGURE OSPF ON R2
+============================================================
+
+The source specifies OSPF process ID 56 and router ID 2.2.2.2.
+
+On R2:
+
+enable
+configure terminal
+
+router ospf 56
+router-id 2.2.2.2
+network 10.53.0.0 0.0.0.255 area 0
+network 192.168.1.0 0.0.0.255 area 0
+exit
+
+end
+write memory
+
+This advertises R2 Loopback1 network 192.168.1.0/24 into OSPF area 0.
+
+============================================================
+14. VERIFY OSPF NEIGHBOR ADJACENCY
+============================================================
+
+On R1:
+
+show ip ospf neighbor
+
+On R2:
+
+show ip ospf neighbor
+
+The routers should form an OSPF adjacency.
+
+The source asks you to identify:
+- DR
+- BDR
+- Selection criteria
+
+The source does not provide the filled-in answer. Do not assume a
+specific DR/BDR from the document alone; observe the actual output
+of show ip ospf neighbor.
+
+============================================================
+15. VERIFY R2 LOOPBACK ROUTE ON R1
+============================================================
+
+On R1:
+
+show ip route ospf
+
+The source notes that the default OSPF behavior advertises the
+Loopback1 interface as a host route using a 32-bit mask.
+
+You should therefore observe the R2 Loopback1 network in R1's
+OSPF routing table according to the actual lab output.
+
+============================================================
+16. TEST R2 LOOPBACK FROM R1
+============================================================
+
+On R1:
+
+ping 192.168.1.1
+
+The source states that the ping should succeed.
+
+============================================================
+17. PART 3 - OPTIMIZATION ON R1
+============================================================
+
+The source asks R1 to:
+1. Set OSPF priority to 50.
+2. Set OSPF hello interval to 30 seconds.
+3. Configure a default static route using Loopback1.
+4. Propagate the default route into OSPF.
+
+On R1:
+
+enable
+configure terminal
+
+interface gigabitethernet0/0/1
+ip ospf priority 50
+ip ospf hello-interval 30
+exit
+
+ip route 0.0.0.0 0.0.0.0 loopback1
+
+router ospf 56
+default-information originate
+exit
+
+end
+write memory
+
+============================================================
+18. WHY THE DEFAULT ROUTE WORKS
+============================================================
+
+R1 uses Loopback1 as the exit interface for the static default route:
+
+0.0.0.0/0 -> Loopback1
+
+Then OSPF command:
+
+default-information originate
+
+causes R1 to advertise the default route into OSPF.
+
+R2 can therefore learn the default route from R1.
+
+============================================================
+19. R2 - CONFIGURE LOOPBACK1 AS POINT-TO-POINT
+============================================================
+
+The source asks R2 to make OSPF treat Loopback1 as a point-to-point
+network.
+
+On R2:
+
+enable
+configure terminal
+
+interface loopback1
+ip ospf network point-to-point
+exit
+
+end
+write memory
+
+The source states that this results in OSPF advertising Loopback1
+using the interface subnet mask instead of the previous host-route
+behavior.
+
+============================================================
+20. R2 - MAKE LOOPBACK1 PASSIVE
+============================================================
+
+The source asks R2 to prevent OSPF advertisements from being sent
+toward the Loopback1 network.
+
+On R2:
+
+enable
+configure terminal
+
+router ospf 56
+passive-interface loopback1
+exit
+
+end
+write memory
+
+IMPORTANT:
+passive-interface loopback1 still allows the Loopback1 network to be
+advertised by OSPF, but prevents OSPF hello packets from being sent
+out that interface.
+
+============================================================
+21. CHANGE OSPF REFERENCE BANDWIDTH
+============================================================
+
+The source instructs changing the OSPF reference bandwidth to 1 Gbps
+on EACH router.
+
+On R1:
+
+enable
+configure terminal
+
+router ospf 56
+auto-cost reference-bandwidth 1000
+exit
+
+end
+
+On R2:
+
+enable
+configure terminal
+
+router ospf 56
+auto-cost reference-bandwidth 1000
+exit
+
+end
+
+The source then instructs you to restart OSPF using:
+
+clear ip ospf process
+
+============================================================
+22. RESTART OSPF PROCESS
+============================================================
+
+On R1:
+
+clear ip ospf process
+
+When prompted:
+
+Reset ALL OSPF processes? [no]:
+
+Type:
+
+yes
+
+Then repeat on R2:
+
+clear ip ospf process
+
+When prompted:
+
+Reset ALL OSPF processes? [no]:
+
+Type:
+
+yes
+
+WARNING:
+This temporarily resets the OSPF process and the adjacency will
+re-form. Wait for the neighbor relationship to become FULL again.
+
+============================================================
+23. VERIFY R1 OSPF INTERFACE SETTINGS
+============================================================
+
+On R1:
+
+show ip ospf interface gigabitethernet0/0/1
+
+Verify:
+
+Priority = 50
+Hello = 30 seconds
+Dead = 120 seconds
+Network Type = Broadcast
+
+The source explicitly asks you to verify these values.
+
+============================================================
+24. VERIFY R1 OSPF ROUTES
+============================================================
+
+On R1:
+
+show ip route ospf
+
+Verify that the R2 Loopback1 network is present.
+
+The source asks you to notice:
+- The metric has changed after reference bandwidth optimization.
+- The mask is now /24 rather than the previous /32.
+
+============================================================
+25. VERIFY R2 OSPF ROUTES
+============================================================
+
+On R2:
+
+show ip route ospf
+
+According to the source, the only OSPF route information should be
+the default route propagated by R1.
+
+Look for:
+
+0.0.0.0/0
+
+The exact metric and next-hop output should be taken from your
+Packet Tracer result.
+
+============================================================
+26. TEST R1 LOOPBACK FROM R2
+============================================================
+
+On R2:
+
+ping 172.16.1.1
+
+The source states that the ping should succeed.
+
+============================================================
+27. FINAL R1 CONFIGURATION - COMPLETE BLOCK
+============================================================
+
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+banner motd #Unauthorized access is prohibited!#
+
+interface gigabitethernet0/0/1
+ip address 10.53.0.1 255.255.255.0
+ip ospf priority 50
+ip ospf hello-interval 30
+no shutdown
+exit
+
+interface loopback1
+ip address 172.16.1.1 255.255.255.0
+exit
+
+ip route 0.0.0.0 0.0.0.0 loopback1
+
+router ospf 56
+router-id 1.1.1.1
+network 10.53.0.0 0.0.0.255 area 0
+default-information originate
+auto-cost reference-bandwidth 1000
+exit
+
+end
+write memory
+
+============================================================
+28. FINAL R2 CONFIGURATION - COMPLETE BLOCK
+============================================================
+
+enable
+configure terminal
+hostname R2
+no ip domain-lookup
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+banner motd #Unauthorized access is prohibited!#
+
+interface gigabitethernet0/0/1
+ip address 10.53.0.2 255.255.255.0
+no shutdown
+exit
+
+interface loopback1
+ip address 192.168.1.1 255.255.255.0
+ip ospf network point-to-point
+exit
+
+router ospf 56
+router-id 2.2.2.2
+network 10.53.0.0 0.0.0.255 area 0
+network 192.168.1.0 0.0.0.255 area 0
+passive-interface loopback1
+auto-cost reference-bandwidth 1000
+exit
+
+end
+write memory
+
+============================================================
+29. SWITCH CONFIGURATION - S1
+============================================================
+
+The source only requires basic settings on the switches. It does not
+specify VLAN or switch management addressing.
+
+Configure basic settings:
+
+enable
+configure terminal
+hostname S1
+no ip domain-lookup
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+banner motd #Unauthorized access is prohibited!#
+
+end
+write memory
+
+============================================================
+30. SWITCH CONFIGURATION - S2
+============================================================
+
+enable
+configure terminal
+hostname S2
+no ip domain-lookup
+enable secret class
+
+line console 0
+password cisco
+login
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+service password-encryption
+banner motd #Unauthorized access is prohibited!#
+
+end
+write memory
+
+============================================================
+31. VERIFY SWITCH LINKS
+============================================================
+
+On S1:
+
+show interfaces status
+
+On S2:
+
+show interfaces status
+
+Also:
+
+show interfaces trunk
+
+The source topology shows:
+
+R1 G0/0/1 -> S1 F0/5
+S1 F0/1 -> S2 F0/1
+S2 F0/5 -> R2 G0/0/1
+
+============================================================
+32. FINAL OSPF VERIFICATION COMMANDS
+============================================================
+
+On R1:
+
+show ip ospf neighbor
+show ip ospf interface gigabitethernet0/0/1
+show ip route ospf
+show ip route
+show ip protocols
+
+On R2:
+
+show ip ospf neighbor
+show ip ospf interface gigabitethernet0/0/1
+show ip route ospf
+show ip route
+show ip protocols
+
+============================================================
+33. FINAL PING TESTS
+============================================================
+
+From R1:
+
+ping 10.53.0.2
+ping 192.168.1.1
+
+From R2:
+
+ping 10.53.0.1
+ping 172.16.1.1
+
+These tests verify:
+- Direct connectivity between R1 and R2.
+- OSPF reachability to the remote Loopback1.
+- Default route propagation from R1 to R2.
+
+============================================================
+34. OSPF ROUTER ID REVISION
+============================================================
+
+R1:
+
+router ospf 56
+router-id 1.1.1.1
+
+R2:
+
+router ospf 56
+router-id 2.2.2.2
+
+OSPF process ID:
+56
+
+Area:
+0
+
+============================================================
+35. OSPF NETWORK COMMAND REVISION
+============================================================
+
+R1 advertises:
+
+network 10.53.0.0 0.0.0.255 area 0
+
+R2 advertises:
+
+network 10.53.0.0 0.0.0.255 area 0
+network 192.168.1.0 0.0.0.255 area 0
+
+============================================================
+36. OSPF OPTIMIZATION REVISION
+============================================================
+
+R1:
+
+ip ospf priority 50
+ip ospf hello-interval 30
+
+R1 default route:
+
+ip route 0.0.0.0 0.0.0.0 loopback1
+
+R1 default propagation:
+
+default-information originate
+
+R2 Loopback network type:
+
+ip ospf network point-to-point
+
+R2 Loopback passive:
+
+passive-interface loopback1
+
+Reference bandwidth on BOTH routers:
+
+auto-cost reference-bandwidth 1000
+
+Restart OSPF:
+
+clear ip ospf process
+
+============================================================
+37. IMPORTANT NOTES FROM THE SOURCE
+============================================================
+
+1. The source uses Cisco 4221 routers with IOS XE 16.9.4 in the
+   documented lab.
+
+2. The source topology uses G0/0/1 on both routers.
+
+3. The command appendix at the end of the source uses F0/0 for the
+   router interface. This is an interface-model difference. For the
+   Cisco 4221 topology shown in the document, use G0/0/1.
+
+4. The source states that the routers and switches should be erased
+   and have no startup configurations before beginning.
+
+5. OSPF process ID is 56.
+
+6. R1 router ID is 1.1.1.1.
+
+7. R2 router ID is 2.2.2.2.
+
+8. OSPF area is 0.
+
+9. R1 provides the default route to R2 using Loopback1.
+
+10. The source's note says the static routing approach used in this
+    lab is for assessing OSPF configuration and may not represent
+    networking best practices.
+
+============================================================
+38. COMMON PRACTICAL CHECKS
+============================================================
+
+IF OSPF NEIGHBOR IS NOT FORMED:
+
+Check:
+
+show ip interface brief
+show ip ospf neighbor
+show ip ospf interface gigabitethernet0/0/1
+
+Verify both sides have:
+
+10.53.0.0/24
+
+and OSPF:
+
+network 10.53.0.0 0.0.0.255 area 0
+
+Also ensure G0/0/1 is:
+
+up/up
+
+------------------------------------------------------------
+
+IF R2 LOOPBACK IS NOT LEARNED BY R1:
+
+On R2:
+
+show ip route connected
+show ip ospf
+show ip route ospf
+
+Verify:
+
+network 192.168.1.0 0.0.0.255 area 0
+
+------------------------------------------------------------
+
+IF R2 DOES NOT LEARN THE DEFAULT ROUTE:
+
+On R1:
+
+show ip route
+show running-config | section router ospf
+
+Verify:
+
+ip route 0.0.0.0 0.0.0.0 loopback1
+
+and:
+
+default-information originate
+
+On R2:
+
+show ip route ospf
+
+------------------------------------------------------------
+
+IF OSPF CHANGES DO NOT APPEAR AFTER REFERENCE BANDWIDTH:
+
+On both routers:
+
+clear ip ospf process
+
+Confirm with:
+
+yes
+
+Then wait for:
+
+show ip ospf neighbor
+
+to show the adjacency as FULL.
+
+============================================================
+39. ONE-MINUTE EXAM REVISION
+============================================================
+
+TOPOLOGY:
+
+R1 G0/0/1 -- S1 F0/5
+S1 F0/1 -- S2 F0/1
+S2 F0/5 -- R2 G0/0/1
+
+R1:
+10.53.0.1/24
+Lo1 = 172.16.1.1/24
+
+R2:
+10.53.0.2/24
+Lo1 = 192.168.1.1/24
+
+OSPF:
+Process 56
+Area 0
+
+R1 RID:
+1.1.1.1
+
+R2 RID:
+2.2.2.2
+
+R1:
+network 10.53.0.0 0.0.0.255 area 0
+
+R2:
+network 10.53.0.0 0.0.0.255 area 0
+network 192.168.1.0 0.0.0.255 area 0
+
+R1 optimization:
+
+ip ospf priority 50
+ip ospf hello-interval 30
+
+Default route:
+
+ip route 0.0.0.0 0.0.0.0 loopback1
+
+Advertise default:
+
+default-information originate
+
+R2:
+
+ip ospf network point-to-point
+passive-interface loopback1
+
+Both:
+
+auto-cost reference-bandwidth 1000
+
+Restart:
+
+clear ip ospf process
+
+Verify:
+
+show ip ospf neighbor
+show ip route ospf
+show ip ospf interface gigabitethernet0/0/1
+
+Final pings:
+
+R1 -> 192.168.1.1
+R2 -> 172.16.1.1
+
+============================================================
+END OF PRACTICAL 8
+============================================================

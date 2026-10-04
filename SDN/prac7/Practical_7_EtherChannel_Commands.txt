@@ -1,0 +1,861 @@
+PRACTICAL 7
+PACKET TRACER - CONFIGURE ETHERCHANNEL
+Commands, Connections, Small Topology Diagram and Verification
+
+============================================================
+QUICK TOPOLOGY DIAGRAM - USE THIS TO BUILD THE NETWORK
+============================================================
+
+                         S1
+                    +----------+
+                    |          |
+              G0/1  |          |  F0/21
+                 ╲  |          |  ╱
+                  ╲ |          | ╱
+                   ╲|          |╱
+                +---+----------+---+
+                |                   |
+                |                   |
+             S2 +-------------------+ S3
+                |                   |
+                +-------------------+
+
+MORE CLEARLY:
+
+                    S1
+                 /      \
+                /        \
+       Po2 LACP            Po1 PAgP
+      G0/1-G0/2           F0/21-F0/22
+             /              \
+            /                \
+          S2------------------S3
+               Po3 LACP
+             F0/23-F0/24
+
+EXACT CABLE CONNECTIONS:
+
+PORT CHANNEL 1 - PAgP
+S1 F0/21  <---------->  S3 F0/21
+S1 F0/22  <---------->  S3 F0/22
+
+PORT CHANNEL 2 - LACP
+S1 G0/1   <---------->  S2 G0/1
+S1 G0/2   <---------->  S2 G0/2
+
+PORT CHANNEL 3 - LACP
+S2 F0/23  <---------->  S3 F0/23
+S2 F0/24  <---------->  S3 F0/24
+
+TIP:
+Build all 6 physical links first. Then configure the EtherChannels.
+Port-channel 1 uses PAgP.
+Port-channel 2 uses LACP.
+Port-channel 3 uses LACP with S2 passive and S3 active.
+
+============================================================
+1. OBJECTIVES
+============================================================
+
+Part 1: Configure Basic Switch Settings
+Part 2: Configure an EtherChannel with Cisco PAgP
+Part 3: Configure an 802.3ad LACP EtherChannel
+Part 4: Configure a Redundant EtherChannel Link
+
+============================================================
+2. PORT CHANNEL TABLE
+============================================================
+
+Channel Group 1:
+S1 F0/21, F0/22
+S3 F0/21, F0/22
+Protocol: PAgP
+
+Channel Group 2:
+S1 G0/1, G0/2
+S2 G0/1, G0/2
+Protocol: LACP
+
+Channel Group 3:
+S2 F0/23, F0/24
+S3 F0/23, F0/24
+Protocol: Negotiated LACP
+
+============================================================
+3. IMPORTANT ETHERCHANNEL RULE
+============================================================
+
+The practical recommends shutting down the physical interfaces before
+adding them to the channel-group. This helps prevent EtherChannel
+Misconfig Guard from placing ports into err-disabled state.
+
+All ports in the same EtherChannel should have compatible settings:
+- Same speed and duplex
+- Same access/trunk configuration
+- Same native VLAN if trunking
+- Same allowed VLANs if trunking
+
+============================================================
+4. BASIC CONFIGURATION - S1
+============================================================
+
+enable
+configure terminal
+hostname S1
+
+interface range fastethernet0/21-22,gigabitethernet0/1-2
+switchport mode trunk
+switchport nonegotiate
+exit
+
+end
+write memory
+
+============================================================
+5. BASIC CONFIGURATION - S2
+============================================================
+
+enable
+configure terminal
+hostname S2
+
+interface range fastethernet0/21-22,gigabitethernet0/1-2
+switchport mode trunk
+switchport nonegotiate
+exit
+
+end
+write memory
+
+NOTE:
+The practical's basic configuration lists S2 F0/21-22 and G0/1-2 as
+trunks. Port Channel 3 later uses F0/23-24, which are then configured
+as part of that EtherChannel.
+
+============================================================
+6. BASIC CONFIGURATION - S3
+============================================================
+
+enable
+configure terminal
+hostname S3
+
+interface range fastethernet0/21-24
+switchport mode trunk
+switchport nonegotiate
+exit
+
+end
+write memory
+
+============================================================
+7. VERIFY THE ORIGINAL PORTS
+============================================================
+
+On S1:
+
+show interfaces | include Ethernet
+show interface status
+show interfaces trunk
+
+On S2:
+
+show interfaces | include Ethernet
+show interface status
+show interfaces trunk
+
+On S3:
+
+show interfaces | include Ethernet
+show interface status
+show interfaces trunk
+
+Make sure the required interfaces exist and are configured as trunks
+before creating the EtherChannels.
+
+============================================================
+8. PART 2 - PORT CHANNEL 1 USING PAgP
+============================================================
+
+Port Channel 1 connects S1 and S3.
+
+S1:
+F0/21 + F0/22
+
+S3:
+F0/21 + F0/22
+
+Protocol:
+PAgP
+
+PAgP mode:
+desirable
+
+============================================================
+9. S1 - CONFIGURE PAgP PORT CHANNEL 1
+============================================================
+
+enable
+configure terminal
+
+interface range fastethernet0/21-22
+shutdown
+channel-group 1 mode desirable
+no shutdown
+exit
+
+interface port-channel 1
+switchport mode trunk
+exit
+
+end
+write memory
+
+============================================================
+10. S3 - CONFIGURE PAgP PORT CHANNEL 1
+============================================================
+
+enable
+configure terminal
+
+interface range fastethernet0/21-22
+shutdown
+channel-group 1 mode desirable
+no shutdown
+exit
+
+interface port-channel 1
+switchport mode trunk
+exit
+
+end
+write memory
+
+============================================================
+11. VERIFY PORT CHANNEL 1
+============================================================
+
+On S1:
+
+show etherchannel summary
+
+On S3:
+
+show etherchannel summary
+
+Expected important information:
+
+Group 1
+Po1
+Protocol PAgP
+F0/21(P)
+F0/22(P)
+
+P means the physical interface is bundled into the port-channel.
+
+Also check:
+
+show interfaces trunk
+
+============================================================
+12. IF PORT CHANNEL 1 DOES NOT COME UP
+============================================================
+
+On BOTH S1 and S3, verify:
+
+show interfaces trunk
+show etherchannel summary
+show running-config interface port-channel 1
+
+If necessary, shut down the member interfaces and bring them back:
+
+interface range fastethernet0/21-22
+shutdown
+no shutdown
+exit
+
+Then check:
+
+show etherchannel summary
+
+============================================================
+13. PART 3 - PORT CHANNEL 2 USING LACP
+============================================================
+
+Port Channel 2 connects S1 and S2.
+
+S1:
+G0/1 + G0/2
+
+S2:
+G0/1 + G0/2
+
+Protocol:
+LACP
+
+S1 uses:
+active
+
+The practical specifically uses LACP active mode on S1.
+
+============================================================
+14. S1 - CONFIGURE LACP PORT CHANNEL 2
+============================================================
+
+enable
+configure terminal
+
+interface range gigabitethernet0/1-2
+shutdown
+channel-group 2 mode active
+no shutdown
+exit
+
+interface port-channel 2
+switchport mode trunk
+exit
+
+end
+write memory
+
+============================================================
+15. S2 - CONFIGURE LACP PORT CHANNEL 2
+============================================================
+
+enable
+configure terminal
+
+interface range gigabitethernet0/1-2
+shutdown
+channel-group 2 mode active
+no shutdown
+exit
+
+interface port-channel 2
+switchport mode trunk
+exit
+
+end
+write memory
+
+NOTE:
+The practical's Part 3 example explicitly shows S1 using
+channel-group 2 mode active. LACP active-active is a compatible
+combination, so S2 can also use active.
+
+============================================================
+16. VERIFY PORT CHANNEL 2
+============================================================
+
+On S1:
+
+show etherchannel summary
+
+On S2:
+
+show etherchannel summary
+
+Also:
+
+show interfaces trunk
+show spanning-tree
+
+Look for:
+
+Group 2
+Po2
+Protocol LACP
+G0/1(P)
+G0/2(P)
+
+============================================================
+17. PART 4 - PORT CHANNEL 3 USING LACP
+============================================================
+
+Port Channel 3 connects S2 and S3.
+
+S2:
+F0/23 + F0/24
+
+S3:
+F0/23 + F0/24
+
+Protocol:
+LACP
+
+S2:
+passive
+
+S3:
+active
+
+This demonstrates LACP negotiation using active/passive modes.
+
+============================================================
+18. S2 - CONFIGURE PORT CHANNEL 3
+============================================================
+
+enable
+configure terminal
+
+interface range fastethernet0/23-24
+shutdown
+channel-group 3 mode passive
+no shutdown
+exit
+
+interface port-channel 3
+switchport mode trunk
+exit
+
+end
+write memory
+
+============================================================
+19. S3 - CONFIGURE PORT CHANNEL 3
+============================================================
+
+enable
+configure terminal
+
+interface range fastethernet0/23-24
+shutdown
+channel-group 3 mode active
+no shutdown
+exit
+
+interface port-channel 3
+switchport mode trunk
+exit
+
+end
+write memory
+
+============================================================
+20. VERIFY PORT CHANNEL 3
+============================================================
+
+On S2:
+
+show etherchannel summary
+
+On S3:
+
+show etherchannel summary
+
+Also:
+
+show interfaces trunk
+show spanning-tree active
+
+Expected:
+
+Group 3
+Po3
+Protocol LACP
+
+S2:
+F0/23(P)
+F0/24(P)
+
+S3:
+F0/23(P)
+F0/24(P)
+
+============================================================
+21. STP AND ETHERCHANNEL
+============================================================
+
+EtherChannel does NOT stop Spanning Tree Protocol from detecting
+switching loops.
+
+STP treats the EtherChannel as one logical link.
+
+Check:
+
+show spanning-tree active
+
+The practical's example shows:
+
+Po1 = Root FWD
+Po2 = Alternate BLK
+
+Because STP may block one logical path, some physical links can be
+blocked as part of the logical topology.
+
+============================================================
+22. MAKE S1 PRIMARY ROOT FOR VLAN 1
+============================================================
+
+The practical explains that Port Channel 2 may not initially be
+operative because STP can place the Gigabit EtherChannel in blocking.
+
+To make S1 the primary root:
+
+On S1:
+
+enable
+configure terminal
+
+spanning-tree vlan 1 root primary
+
+end
+write memory
+
+Then verify:
+
+show spanning-tree active
+
+============================================================
+23. ALTERNATIVE - SET STP PRIORITY
+============================================================
+
+Instead of root primary, the practical gives this alternative:
+
+On S1:
+
+enable
+configure terminal
+
+spanning-tree vlan 1 priority 24576
+
+end
+write memory
+
+Then:
+
+show spanning-tree active
+
+Use ONE method:
+- spanning-tree vlan 1 root primary
+OR
+- spanning-tree vlan 1 priority 24576
+
+============================================================
+24. VERIFY ALL ETHERCHANNELS
+============================================================
+
+On S1:
+
+show etherchannel summary
+show interfaces trunk
+show spanning-tree active
+
+On S2:
+
+show etherchannel summary
+show interfaces trunk
+show spanning-tree active
+
+On S3:
+
+show etherchannel summary
+show interfaces trunk
+show spanning-tree active
+
+============================================================
+25. QUICK COMMANDS - PAgP
+============================================================
+
+S1:
+
+interface range f0/21-22
+shutdown
+channel-group 1 mode desirable
+no shutdown
+exit
+interface port-channel 1
+switchport mode trunk
+exit
+
+S3:
+
+interface range f0/21-22
+shutdown
+channel-group 1 mode desirable
+no shutdown
+exit
+interface port-channel 1
+switchport mode trunk
+exit
+
+Verify:
+
+show etherchannel summary
+
+============================================================
+26. QUICK COMMANDS - LACP PORT CHANNEL 2
+============================================================
+
+S1:
+
+interface range g0/1-2
+shutdown
+channel-group 2 mode active
+no shutdown
+exit
+interface port-channel 2
+switchport mode trunk
+exit
+
+S2:
+
+interface range g0/1-2
+shutdown
+channel-group 2 mode active
+no shutdown
+exit
+interface port-channel 2
+switchport mode trunk
+exit
+
+Verify:
+
+show etherchannel summary
+
+============================================================
+27. QUICK COMMANDS - LACP PORT CHANNEL 3
+============================================================
+
+S2:
+
+interface range f0/23-24
+shutdown
+channel-group 3 mode passive
+no shutdown
+exit
+interface port-channel 3
+switchport mode trunk
+exit
+
+S3:
+
+interface range f0/23-24
+shutdown
+channel-group 3 mode active
+no shutdown
+exit
+interface port-channel 3
+switchport mode trunk
+exit
+
+Verify:
+
+show etherchannel summary
+
+============================================================
+28. ETHERCHANNEL MODE REVISION
+============================================================
+
+PAgP:
+
+desirable = actively negotiates PAgP
+auto      = waits for PAgP
+
+Compatible PAgP:
+desirable + desirable
+desirable + auto
+
+auto + auto:
+EtherChannel will NOT form.
+
+LACP:
+
+active  = actively negotiates LACP
+passive = waits for LACP
+
+Compatible LACP:
+active + active
+active + passive
+
+passive + passive:
+EtherChannel will NOT form.
+
+Static:
+
+on = EtherChannel without PAgP/LACP negotiation
+
+============================================================
+29. IMPORTANT ETHERCHANNEL GUIDELINES
+============================================================
+
+1. EtherChannel supports up to eight Ethernet interfaces.
+
+2. Interfaces in an EtherChannel must operate at the same speed and
+   duplex.
+
+3. EtherChannel can be used for access ports or trunk links.
+
+4. All Layer-2 EtherChannel member interfaces must have compatible
+   VLAN/trunk configuration.
+
+5. Trunk EtherChannels must have matching native VLANs.
+
+6. Trunk EtherChannels must have matching allowed VLANs.
+
+7. Shut down physical interfaces before creating the EtherChannel.
+
+8. After configuration, verify that interfaces are up/up and bundled.
+
+9. Channel-group numbers are local to each switch. They do not have
+   to match on both ends, although this practical uses matching numbers.
+
+============================================================
+30. COMMON ERRORS AND FIXES
+============================================================
+
+ERROR:
+EtherChannel does not form.
+
+CHECK:
+
+show etherchannel summary
+
+Make sure both ends use compatible modes.
+
+PAgP:
+desirable + desirable
+or
+desirable + auto
+
+LACP:
+active + active
+or
+active + passive
+
+------------------------------------------------------------
+
+ERROR:
+Ports show as suspended/stand-alone.
+
+CHECK:
+
+show etherchannel summary
+
+Then verify that member ports have matching trunk settings.
+
+------------------------------------------------------------
+
+ERROR:
+Port becomes err-disabled.
+
+Try:
+
+interface range <member-ports>
+shutdown
+no shutdown
+
+Then check:
+
+show etherchannel summary
+
+------------------------------------------------------------
+
+ERROR:
+Trunk is not active.
+
+Check:
+
+show interfaces trunk
+
+Then configure the logical interface:
+
+interface port-channel <number>
+switchport mode trunk
+
+------------------------------------------------------------
+
+ERROR:
+One EtherChannel is blocked by STP.
+
+Check:
+
+show spanning-tree active
+
+If required by the practical, make S1 the root:
+
+spanning-tree vlan 1 root primary
+
+Then verify again.
+
+============================================================
+31. FINAL EXAM VERIFICATION
+============================================================
+
+Run on each switch:
+
+show etherchannel summary
+show interfaces trunk
+show spanning-tree active
+
+The three logical links should be:
+
+Po1 = PAgP
+Po2 = LACP
+Po3 = LACP
+
+============================================================
+32. SAVE CONFIGURATION
+============================================================
+
+On S1:
+
+copy running-config startup-config
+
+On S2:
+
+copy running-config startup-config
+
+On S3:
+
+copy running-config startup-config
+
+OR simply:
+
+write memory
+
+============================================================
+33. ONE-MINUTE PRACTICAL REVISION
+============================================================
+
+TOPOLOGY:
+
+S1 F0/21-22 <----> S3 F0/21-22
+        PAgP = Po1
+
+S1 G0/1-2  <----> S2 G0/1-2
+        LACP = Po2
+
+S2 F0/23-24 <----> S3 F0/23-24
+        LACP = Po3
+
+PAgP:
+channel-group 1 mode desirable
+
+LACP active:
+channel-group 2 mode active
+
+LACP passive:
+channel-group 3 mode passive
+
+LACP active on S3:
+channel-group 3 mode active
+
+Logical trunk:
+
+interface port-channel <number>
+switchport mode trunk
+
+Main verification:
+
+show etherchannel summary
+show interfaces trunk
+show spanning-tree active
+
+Make S1 root:
+
+spanning-tree vlan 1 root primary
+
+============================================================
+END OF PRACTICAL 7
+============================================================

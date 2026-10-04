@@ -1,0 +1,97 @@
+SDN PRACTICAL COMMANDS
+=======================
+
+VTP PRACTICAL
+-------------
+
+TOPOLOGY / DEVICE ROLES
+
+S1: VTP Server
+VTP Domain: University
+
+S2: VTP Client
+S3: VTP Transparent
+S4: VTP Client
+
+⚠️ IMPORTANT:
+The switch-to-switch interface must be the actual connected port in your topology. The practical uses Fa0/1.
+
+
+S1 - VTP SERVER
+---------------
+
+enable
+configure terminal
+interface fa0/1
+switchport mode trunk
+exit
+interface fa0/2
+switchport mode trunk
+exit
+vtp mode server
+vtp domain University
+end
+show vtp status
+
+
+S2 - VTP CLIENT
+---------------
+
+enable
+configure terminal
+interface fa0/1
+switchport mode trunk
+vtp mode client
+
+⚠️ CHECK THIS COMMAND:
+vtp domain VTPclient
+
+The VTP domain must match the VTP server's domain. Since S1 uses "University", use:
+
+vtp domain University
+
+end
+show vtp status
+
+
+S3 - VTP TRANSPARENT
+--------------------
+
+enable
+configure terminal
+interface fa0/1
+switchport mode trunk
+vtp mode transparent
+end
+show vtp status
+
+
+S4 - VTP CLIENT
+---------------
+
+enable
+configure terminal
+interface fa0/1
+switchport mode trunk
+vtp mode client
+end
+show vtp status
+
+
+IMPORTANT CHECKS
+----------------
+
+⚠️ CHECK:
+interface fa0/1
+
+Make sure Fa0/1 is actually the switch-to-switch connection port. If your topology uses another port, replace Fa0/1 with the correct interface.
+
+⚠️ CHECK:
+vtp domain VTPclient
+
+Do not use "VTPclient" if S1 is the VTP server with domain "University". S2 should use:
+
+vtp domain University
+
+⚠️ NOTE:
+The original practical includes "show vtp status" before some configuration commands. It is a verification command, so it is placed after the configuration in the clean command sequence.

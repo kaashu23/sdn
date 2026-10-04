@@ -1,0 +1,680 @@
+============================================================
+PRACTICAL 2 - DEVICE CONNECTION DIAGRAM
+============================================================
+
+                         SERIAL DCE / DTE
+               10.1.1.0/30       10.2.2.0/30
+                  S0/0/0            S0/0/1
+             DCE on R1          DCE on ISP
+                    |                 |
+                    |                 |
+PC-A                |                 |                 PC-C
+192.168.10.3        |                 |          192.168.30.3
+     |              |                 |                 |
+     |               Fa0/2            |              Fa0/2*
+     |          +----+----+       +---+----+             |
+     |          |   S1    |       |   S3   |             |
+     +----------| VLAN 1  |       | VLAN 1 |-------------+
+                +----+----+       +---+----+
+                     |                 |
+                   Fa0/1             Fa0/1
+                     |                 |
+                  +--+--+           +--+--+
+                  |  R1 |===========|  R3 |
+                  +-----+           +-----+
+
+ACTUAL ROUTER PORTS
+-------------------
+R1:
+  FastEthernet0/1  -> S1
+  Serial0/0/0      -> ISP Serial0/0/0
+
+ISP:
+  Serial0/0/0      -> R1 Serial0/0/0
+  Serial0/0/1      -> R3 Serial0/0/0
+
+R3:
+  FastEthernet0/1  -> S3
+  Serial0/0/0      -> ISP Serial0/0/1
+
+SWITCH PORTS
+------------
+S1:
+  FastEthernet0/2  -> R1 FastEthernet0/1
+  One other FastEthernet port -> PC-A
+
+S3:
+  FastEthernet0/2* -> R3 FastEthernet0/1
+  One other FastEthernet port -> PC-C
+
+* The uploaded practical/source confirms the router-to-switch links and
+  the actual 1841 router interfaces, but it does not record the exact S3
+  switch port used. If your working Packet Tracer file uses another active
+  S3 port, keep that actual port instead of changing it.
+
+============================================================
+CABLE / WIRE TYPE
+============================================================
+
+1. PC-A NIC -> S1 FastEthernet0/x
+   Cable: Copper Straight-Through
+
+2. S1 FastEthernet0/2 -> R1 FastEthernet0/1
+   Cable: Copper Straight-Through
+
+3. R1 Serial0/0/0 -> ISP Serial0/0/0
+   Cable: Serial DCE/DTE
+   Clock rate: R1 side (DCE)
+
+4. ISP Serial0/0/1 -> R3 Serial0/0/0
+   Cable: Serial DCE/DTE
+   Clock rate: ISP side (DCE)
+
+5. R3 FastEthernet0/1 -> S3 FastEthernet0/2* 
+   Cable: Copper Straight-Through
+
+6. S3 FastEthernet0/x -> PC-C NIC
+   Cable: Copper Straight-Through
+
+
+============================================================
+PORT / ADDRESS QUICK TABLE
+============================================================
+
+Device  Interface       IP Address          Connected To
+------  --------------  ------------------  ------------------------
+R1      Fa0/1           192.168.10.1/24     S1
+R1      S0/0/0          10.1.1.1/30         ISP S0/0/0
+R1      Lo0             192.168.20.1/24     Local
+
+ISP     S0/0/0          10.1.1.2/30         R1 S0/0/0
+ISP     S0/0/1          10.2.2.2/30         R3 S0/0/0
+ISP     Lo0             209.165.200.225/27  Local
+
+R3      Fa0/1           192.168.30.1/24     S3
+R3      S0/0/0          10.2.2.1/30         ISP S0/0/1
+R3      Lo0             192.168.40.1/24     Local
+
+S1      VLAN 1          192.168.10.11/24    Gateway 192.168.10.1
+S3      VLAN 1          192.168.30.11/24    Gateway 192.168.30.1
+
+PC-A    NIC             192.168.10.3/24     Gateway 192.168.10.1
+PC-C    NIC             192.168.30.3/24     Gateway 192.168.30.1
+
+
+============================================================
+HOW TO IDENTIFY THE ACTUAL SWITCH PORT
+============================================================
+
+On S1:
+show interfaces status
+
+On S3:
+show interfaces status
+
+Use the port that shows connected/up for the router link.
+
+
+PRACTICAL 2
+CONFIGURING AND VERIFYING STANDARD IPv4 ACLs
+=============================================
+
+DEVICE-WISE COMPLETE CONFIGURATION
+Cisco 1841 / Packet Tracer
+
+IMPORTANT:
+1. This file contains the COMPLETE configuration from an empty device:
+   basic configuration + interfaces + routing + ACLs + verification.
+2. Interface names are adapted to the Cisco 1841 setup used:
+      R1  -> FastEthernet0/1, Serial0/0/0
+      R3  -> FastEthernet0/1, Serial0/0/0
+      ISP -> Serial0/0/0, Serial0/0/1
+3. In the original lab sheet, R3 uses Serial0/0/1, but your actual
+   Cisco 1841 uses Serial0/0/0 for the R3-ISP serial link.
+4. Clock rate is configured only on the DCE serial interfaces used in
+   your setup:
+      R1 S0/0/0
+      ISP S0/0/1
+5. PC IP addresses are entered from Desktop -> IP Configuration.
+6. Do the connectivity tests BEFORE applying ACLs when performing the
+   practical step-by-step. The final ACL configuration is included below.
+
+
+============================================================
+R1 - COMPLETE CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+no ip domain-lookup
+hostname R1
+service password-encryption
+enable secret class
+
+banner motd #
+Unauthorized access is strictly prohibited.#
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+interface loopback 0
+ip address 192.168.20.1 255.255.255.0
+exit
+
+interface fastEthernet 0/1
+ip address 192.168.10.1 255.255.255.0
+no shutdown
+exit
+
+interface serial 0/0/0
+ip address 10.1.1.1 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+
+router rip
+version 2
+network 192.168.10.0
+network 192.168.20.0
+network 10.1.1.0
+no auto-summary
+exit
+
+end
+copy running-config startup-config
+
+
+============================================================
+ISP - COMPLETE CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+no ip domain-lookup
+hostname ISP
+service password-encryption
+enable secret class
+
+banner motd #
+Unauthorized access is strictly prohibited.#
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+interface loopback 0
+ip address 209.165.200.225 255.255.255.224
+exit
+
+interface serial 0/0/0
+ip address 10.1.1.2 255.255.255.252
+no shutdown
+exit
+
+interface serial 0/0/1
+ip address 10.2.2.2 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+
+router rip
+version 2
+network 209.165.200.0
+network 10.1.1.0
+network 10.2.2.0
+no auto-summary
+exit
+
+end
+copy running-config startup-config
+
+
+============================================================
+R3 - COMPLETE CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+no ip domain-lookup
+hostname R3
+service password-encryption
+enable secret class
+
+banner motd #
+Unauthorized access is strictly prohibited.#
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+interface loopback 0
+ip address 192.168.40.1 255.255.255.0
+exit
+
+interface fastEthernet 0/1
+ip address 192.168.30.1 255.255.255.0
+no shutdown
+exit
+
+interface serial 0/0/0
+ip address 10.2.2.1 255.255.255.252
+no shutdown
+exit
+
+router rip
+version 2
+network 192.168.30.0
+network 192.168.40.0
+network 10.2.2.0
+no auto-summary
+exit
+
+end
+copy running-config startup-config
+
+
+============================================================
+S1 - COMPLETE CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+no ip domain-lookup
+hostname S1
+service password-encryption
+enable secret class
+
+banner motd #
+Unauthorized access is strictly prohibited.#
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 15
+password cisco
+login
+exit
+
+interface vlan 1
+ip address 192.168.10.11 255.255.255.0
+no shutdown
+exit
+
+ip default-gateway 192.168.10.1
+
+end
+copy running-config startup-config
+
+
+============================================================
+S3 - COMPLETE CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+no ip domain-lookup
+hostname S3
+service password-encryption
+enable secret class
+
+banner motd #
+Unauthorized access is strictly prohibited.#
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 15
+password cisco
+login
+exit
+
+interface vlan 1
+ip address 192.168.30.11 255.255.255.0
+no shutdown
+exit
+
+ip default-gateway 192.168.30.1
+
+end
+copy running-config startup-config
+
+
+============================================================
+PC-A - IP CONFIGURATION
+============================================================
+
+Desktop -> IP Configuration
+
+IP Address      : 192.168.10.3
+Subnet Mask     : 255.255.255.0
+Default Gateway : 192.168.10.1
+
+
+============================================================
+PC-C - IP CONFIGURATION
+============================================================
+
+Desktop -> IP Configuration
+
+IP Address      : 192.168.30.3
+Subnet Mask     : 255.255.255.0
+Default Gateway : 192.168.30.1
+
+
+============================================================
+RIP VERIFICATION
+============================================================
+
+R1:
+show ip protocols
+show ip route
+show ip route rip
+
+ISP:
+show ip protocols
+show ip route
+show ip route rip
+
+R3:
+show ip protocols
+show ip route
+show ip route rip
+
+
+============================================================
+BASIC CONNECTIVITY TEST
+DO THIS BEFORE APPLYING ACLs
+============================================================
+
+PC-A:
+ping 192.168.30.3
+ping 192.168.40.1
+
+R1:
+ping 192.168.30.3
+ping 192.168.40.1
+
+PC-C:
+ping 192.168.10.3
+ping 192.168.20.1
+
+R3:
+ping 192.168.10.3
+ping 192.168.20.1
+
+
+============================================================
+R3 - NUMBERED STANDARD ACL 1
+============================================================
+
+Policy:
+Allow 192.168.10.0/24 and 192.168.20.0/24
+to access 192.168.30.0/24.
+
+enable
+configure terminal
+
+access-list 1 remark Allow R1 LANs Access
+access-list 1 permit 192.168.10.0 0.0.0.255
+access-list 1 permit 192.168.20.0 0.0.0.255
+access-list 1 deny any
+
+interface fastEthernet 0/1
+ip access-group 1 out
+exit
+
+end
+copy running-config startup-config
+
+
+============================================================
+VERIFY R3 NUMBERED ACL
+============================================================
+
+R3:
+show access-lists 1
+show ip interface fastEthernet 0/1
+
+
+============================================================
+TEST R3 NUMBERED ACL
+============================================================
+
+PC-A:
+ping 192.168.30.3
+
+R1 normal ping:
+ping 192.168.30.3
+
+R1 extended ping using Loopback0 source:
+
+ping
+
+Protocol [ip]:
+Target IP address: 192.168.30.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 192.168.20.1
+
+Press Enter for remaining default options.
+
+
+============================================================
+R1 - NAMED STANDARD ACL
+============================================================
+
+Policy:
+1. Allow PC-C (192.168.30.3)
+2. Allow all hosts from 192.168.40.0/24
+
+enable
+configure terminal
+
+ip access-list standard BRANCH-OFFICE-POLICY
+permit host 192.168.30.3
+permit 192.168.40.0 0.0.0.255
+exit
+
+interface fastEthernet 0/1
+ip access-group BRANCH-OFFICE-POLICY out
+exit
+
+end
+copy running-config startup-config
+
+
+============================================================
+VERIFY R1 NAMED ACL
+============================================================
+
+R1:
+show access-lists
+show ip interface fastEthernet 0/1
+
+
+============================================================
+TEST R1 NAMED ACL
+============================================================
+
+PC-C:
+ping 192.168.10.3
+
+R3 extended ping using FastEthernet0/1 source:
+
+ping
+
+Protocol [ip]:
+Target IP address: 192.168.10.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 192.168.30.1
+
+Press Enter for remaining default options.
+
+
+R3 extended ping using Loopback0 source:
+
+ping
+
+Protocol [ip]:
+Target IP address: 192.168.10.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 192.168.40.1
+
+Press Enter for remaining default options.
+
+
+============================================================
+R1 - MODIFY NAMED STANDARD ACL
+============================================================
+
+New policy:
+Allow 209.165.200.224/27 network to access 192.168.10.0/24.
+Add explicit deny any at the end.
+
+enable
+configure terminal
+
+ip access-list standard BRANCH-OFFICE-POLICY
+30 permit 209.165.200.224 0.0.0.31
+40 deny any
+exit
+
+end
+copy running-config startup-config
+
+
+============================================================
+VERIFY MODIFIED ACL
+============================================================
+
+R1:
+show access-lists
+
+
+Expected final ACL:
+
+Standard IP access list BRANCH-OFFICE-POLICY
+10 permit 192.168.30.3
+20 permit 192.168.40.0 0.0.0.255
+30 permit 209.165.200.224 0.0.0.31
+40 deny any
+
+
+============================================================
+TEST MODIFIED ACL
+============================================================
+
+ISP extended ping:
+
+ping
+
+Protocol [ip]:
+Target IP address: 192.168.10.3
+Repeat count [5]:
+Datagram size [100]:
+Timeout in seconds [2]:
+Extended commands [n]: y
+Source address or interface: 209.165.200.225
+
+Press Enter for remaining default options.
+
+
+============================================================
+FINAL VERIFICATION - ALL DEVICES
+============================================================
+
+R1:
+show ip interface brief
+show ip protocols
+show ip route
+show ip route rip
+show access-lists
+show ip interface fastEthernet 0/1
+show running-config
+
+ISP:
+show ip interface brief
+show ip protocols
+show ip route
+show ip route rip
+show running-config
+
+R3:
+show ip interface brief
+show ip protocols
+show ip route
+show ip route rip
+show access-lists 1
+show ip interface fastEthernet 0/1
+show running-config
+
+S1:
+show ip interface brief
+show running-config
+
+S3:
+show ip interface brief
+show running-config
+
+
+============================================================
+IMPORTANT PRACTICAL NOTES
+============================================================
+
+1. Standard ACLs filter traffic using the SOURCE IP address.
+2. ACL 1 is applied on R3 FastEthernet0/1 OUT.
+3. BRANCH-OFFICE-POLICY is applied on R1 FastEthernet0/1 OUT.
+4. The ISP router does NOT have an ACL.
+5. The numbered ACL contains an explicit deny any.
+6. The modified named ACL contains an explicit deny any.
+7. If your serial interface is different, use the actual interface
+   shown by:
+   show ip interface brief
+8. Verify the DCE side before setting clock rate:
+   show controllers serial 0/0/0
+   or the appropriate serial interface.
+9. Save every completed configuration with:
+   copy running-config startup-config
+
+END OF PRACTICAL 2

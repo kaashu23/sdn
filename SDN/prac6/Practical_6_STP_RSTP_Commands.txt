@@ -1,0 +1,963 @@
+PRACTICAL 6
+LAB - OBSERVE STP TOPOLOGY CHANGES AND IMPLEMENT RSTP
+Cisco Packet Tracer
+Commands, Connections, IP Addressing and Verification
+
+
+============================================================
+QUICK TOPOLOGY DIAGRAM - USE THIS TO BUILD THE NETWORK
+============================================================
+
+                         G1/0/1
+                 +------------------+
+                 |                  |
+             +-------+          +-------+
+             |  D1   |          |  D2   |
+             +-------+          +-------+
+              | G1/0/5 \        / G1/0/5 |
+              |         \      /         |
+              | G1/0/6  \    /  G1/0/6  |
+              |           \  /           |
+              |            \/            |
+              |            /\            |
+              |           /  \           |
+              +----------+    +----------+
+                         | A1 |
+                         +----+
+                       F0/1 F0/2
+                       F0/3 F0/4
+
+MORE CLEARLY:
+
+        D1 G1/0/1  =================  G1/0/1 D2
+             |                              |
+             |                              |
+        G1/0/5                            G1/0/5
+             |                              |
+             |                              |
+             +----------+    +--------------+
+                        |    |
+                     A1 F0/1 F0/3
+                     A1 F0/2 F0/4
+                        |    |
+             +----------+    +--------------+
+             |                              |
+        D1 G1/0/6                            D2 G1/0/6
+
+PORT-BY-PORT CONNECTIONS:
+
+D1 G1/0/1  <---------->  D2 G1/0/1
+D1 G1/0/5  <---------->  A1 F0/1
+D1 G1/0/6  <---------->  A1 F0/2
+D2 G1/0/5  <---------->  A1 F0/3
+D2 G1/0/6  <---------->  A1 F0/4
+
+TIP:
+First build exactly these 5 links. Then configure the switches.
+The two links from D1 to A1 and the two links from D2 to A1 create
+redundant Layer-2 paths. STP/RSTP will prevent a Layer-2 loop.
+
+============================================================
+
+============================================================
+1. TOPOLOGY / CONNECTIONS
+============================================================
+
+Use 3 switches:
+
+D1 = Distribution Switch 1
+D2 = Distribution Switch 2
+A1 = Access Switch 1
+
+Physical connections shown in the practical:
+
+D1 G1/0/1  <-->  D2 G1/0/1
+
+D1 G1/0/5  <-->  A1 F0/1
+D1 G1/0/6  <-->  A1 F0/2
+
+D2 G1/0/5  <-->  A1 F0/3
+D2 G1/0/6  <-->  A1 F0/4
+
+This creates redundant Layer-2 paths. STP prevents the loop by placing
+one or more redundant ports into a blocking/alternate state.
+
+============================================================
+2. ADDRESSING TABLE
+============================================================
+
+D1 VLAN 1
+IP Address: 10.0.0.1
+Subnet Mask: 255.0.0.0
+
+D2 VLAN 1
+IP Address: 10.0.0.2
+Subnet Mask: 255.0.0.0
+
+A1 VLAN 1
+IP Address: 10.0.0.3
+Subnet Mask: 255.0.0.0
+
+============================================================
+3. IMPORTANT SWITCH INTERFACE INFORMATION
+============================================================
+
+D1:
+G1/0/1 = connection to D2
+G1/0/5 = connection to A1
+G1/0/6 = connection to A1
+
+D2:
+G1/0/1 = connection to D1
+G1/0/5 = connection to A1
+G1/0/6 = connection to A1
+
+A1:
+F0/1 = connection to D1 G1/0/5
+F0/2 = connection to D1 G1/0/6
+F0/3 = connection to D2 G1/0/5
+F0/4 = connection to D2 G1/0/6
+
+============================================================
+4. D1 - BASIC CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname D1
+
+spanning-tree mode pvst
+
+banner motd # D1, STP Topology Change and RSTP Lab #
+
+line console 0
+exec-timeout 0 0
+logging synchronous
+exit
+
+vlan 2
+name SecondVLAN
+exit
+
+interface vlan 1
+ip address 10.0.0.1 255.0.0.0
+no shutdown
+exit
+
+end
+write memory
+
+============================================================
+5. D1 - INTERFACE CONFIGURATION
+============================================================
+
+The lab first shuts down the switch interfaces and then enables the
+interfaces used by the topology.
+
+enable
+configure terminal
+
+interface range gigabitethernet1/0/1-24
+shutdown
+exit
+
+interface range gigabitethernet1/1/1-4
+shutdown
+exit
+
+interface range gigabitethernet1/0/1,gigabitethernet1/0/5-6
+switchport mode trunk
+no shutdown
+exit
+
+end
+write memory
+
+NOTE:
+The source lab also shows:
+switchport trunk encapsulation dot1q
+
+On switch models that support the command, it can be entered before
+switchport mode trunk. Some Cisco Catalyst models already use 802.1Q
+by default and do not accept that command. If Packet Tracer reports
+"Invalid input", omit only that command and continue with
+switchport mode trunk.
+
+============================================================
+6. D2 - BASIC CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname D2
+
+spanning-tree mode pvst
+
+banner motd # D2, STP Topology Change and RSTP Lab #
+
+line console 0
+exec-timeout 0 0
+logging synchronous
+exit
+
+vlan 2
+name SecondVLAN
+exit
+
+interface vlan 1
+ip address 10.0.0.2 255.0.0.0
+no shutdown
+exit
+
+end
+write memory
+
+============================================================
+7. D2 - INTERFACE CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+interface range gigabitethernet1/0/1-24
+shutdown
+exit
+
+interface range gigabitethernet1/1/1-4
+shutdown
+exit
+
+interface range gigabitethernet1/0/1,gigabitethernet1/0/5-6
+switchport mode trunk
+no shutdown
+exit
+
+end
+write memory
+
+If supported by your switch model, the source lab also uses:
+
+switchport trunk encapsulation dot1q
+
+If the command is rejected, omit it.
+
+============================================================
+8. A1 - BASIC CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname A1
+
+spanning-tree mode pvst
+
+banner motd # A1, STP Topology Change and RSTP Lab #
+
+line console 0
+exec-timeout 0 0
+logging synchronous
+exit
+
+vlan 2
+name SecondVLAN
+exit
+
+interface vlan 1
+ip address 10.0.0.3 255.0.0.0
+no shutdown
+exit
+
+end
+write memory
+
+============================================================
+9. A1 - INTERFACE CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+interface range fastethernet0/1-24
+shutdown
+exit
+
+interface range gigabitethernet0/1-2
+shutdown
+exit
+
+interface range fastethernet0/1-4
+switchport mode trunk
+no shutdown
+exit
+
+end
+write memory
+
+============================================================
+10. VERIFY BASIC CONFIGURATION
+============================================================
+
+On D1:
+
+show ip interface brief
+show vlan brief
+show interfaces trunk
+show spanning-tree
+
+On D2:
+
+show ip interface brief
+show vlan brief
+show interfaces trunk
+show spanning-tree
+
+On A1:
+
+show ip interface brief
+show vlan brief
+show interfaces trunk
+show spanning-tree
+
+You can also test management connectivity:
+
+From D1:
+ping 10.0.0.2
+ping 10.0.0.3
+
+From D2:
+ping 10.0.0.1
+ping 10.0.0.3
+
+From A1:
+ping 10.0.0.1
+ping 10.0.0.2
+
+============================================================
+11. PART 2 - DISCOVER DEFAULT SPANNING TREE
+============================================================
+
+All switches are initially running:
+
+spanning-tree mode pvst
+
+The practical asks you to observe:
+1. Root Bridge
+2. Root Ports
+3. Designated Ports
+4. Alternate/blocked ports
+5. Topology changes when a link is shut down
+
+============================================================
+12. FIND THE ROOT BRIDGE
+============================================================
+
+On A1:
+
+show spanning-tree root
+
+The practical's documented output shows D1 as the root bridge for
+VLAN 1 and VLAN 2.
+
+Also run on D1:
+
+show spanning-tree root
+
+And on D2:
+
+show spanning-tree root
+
+To inspect the MAC addresses:
+
+show version | include MAC
+
+Run this command on D1, D2 and A1.
+
+The root bridge election uses the Bridge ID. With equal default
+priorities, the lower base MAC address is used as the tie breaker.
+
+============================================================
+13. VIEW COMPLETE SPANNING TREE
+============================================================
+
+On A1:
+
+show spanning-tree
+
+Look for the Interface Role and Status columns.
+
+Typical roles are:
+
+Root  = Root Port
+Desg  = Designated Port
+Altn  = Alternate Port
+
+Typical states include:
+
+FWD   = Forwarding
+BLK   = Blocking
+
+The practical documents A1 F0/1 as the root port and the redundant
+A1 links as alternate/blocked paths in the initial topology.
+
+============================================================
+14. OBSERVE ROOT PORT INFORMATION
+============================================================
+
+On D1:
+
+show spanning-tree root
+
+On D2:
+
+show spanning-tree root
+
+On A1:
+
+show spanning-tree root
+
+The practical explains that the root port is the port with the lowest
+path cost toward the root bridge.
+
+The documented example shows:
+
+D1 = Root Bridge
+D2 root port = Gi1/0/1
+A1 root port = Fa0/1
+
+============================================================
+15. OBSERVE PORT COST AND PATH COST
+============================================================
+
+On A1:
+
+show spanning-tree
+
+The practical example shows a FastEthernet path cost of 19.
+
+When a topology change forces D2 to reach D1 through A1, the documented
+example shows:
+
+Root path cost = 38
+Root port cost = 19
+
+This is because two FastEthernet links are involved:
+
+19 + 19 = 38
+
+============================================================
+16. TEST TOPOLOGY CHANGE - SHUT DOWN D1 G1/0/1
+============================================================
+
+On D1:
+
+enable
+configure terminal
+
+interface gigabitethernet1/0/1
+shutdown
+exit
+
+end
+
+Now go to D2 and check:
+
+show spanning-tree
+
+The root path changes because the direct D1-D2 link has been removed.
+
+The practical's documented example shows D2 using G1/0/5 as the root
+port and a root path cost of 38.
+
+============================================================
+17. RESTORE D1 G1/0/1
+============================================================
+
+On D1:
+
+enable
+configure terminal
+
+interface gigabitethernet1/0/1
+no shutdown
+exit
+
+end
+
+Verify:
+
+show spanning-tree
+
+The original topology should be restored after STP reconverges.
+
+============================================================
+18. IDENTIFY DESIGNATED PORTS
+============================================================
+
+On D2:
+
+show spanning-tree
+
+The practical's documented example shows:
+
+Gi1/0/1 = Root FWD
+Gi1/0/5 = Desg FWD
+Gi1/0/6 = Desg FWD
+
+On A1:
+
+show spanning-tree
+
+The practical documents the redundant A1 ports as Alternate/Blocking
+in the initial PVST+ topology.
+
+============================================================
+19. PART 3 - OBSERVE STP DEBUG EVENTS
+============================================================
+
+On D2:
+
+enable
+
+debug spanning-tree events
+
+Then:
+
+configure terminal
+
+interface gigabitethernet1/0/1
+shutdown
+exit
+
+The debug output will show the spanning-tree reaction to the link
+failure.
+
+The practical's example shows:
+- D2 detects G1/0/1 going down.
+- D2 changes its root path.
+- D2 uses G1/0/5.
+- G1/0/6 transitions toward blocking.
+- Topology Change Notifications are generated.
+
+The lab documents approximately 17 seconds for the traditional
+spanning-tree topology adjustment in its example.
+
+============================================================
+20. TURN OFF DEBUG
+============================================================
+
+After observing the debug output, always disable debugging.
+
+undebug all
+
+or:
+
+no debug all
+
+Then:
+
+end
+
+This prevents continuous debug messages from filling the CLI.
+
+============================================================
+21. ENABLE RSTP ON D1
+============================================================
+
+The practical changes D1 from PVST to Rapid PVST+.
+
+On D1:
+
+enable
+configure terminal
+
+spanning-tree mode rapid-pvst
+
+end
+
+write memory
+
+Verify:
+
+show spanning-tree
+
+The protocol should show:
+
+Spanning tree enabled protocol rstp
+
+============================================================
+22. IMPORTANT RSTP POINT
+============================================================
+
+The practical explains that RSTP does not provide the full rapid
+convergence benefit when only one switch is running RSTP.
+
+If D1 is running rapid-pvst but D2 and A1 are still running PVST,
+compatibility behavior can cause traditional STP timing to be used.
+
+Therefore, configure all switches for rapid-pvst.
+
+============================================================
+23. ENABLE RSTP ON D2
+============================================================
+
+On D2:
+
+enable
+configure terminal
+
+spanning-tree mode rapid-pvst
+
+end
+write memory
+
+Verify:
+
+show spanning-tree
+
+============================================================
+24. ENABLE RSTP ON A1
+============================================================
+
+On A1:
+
+enable
+configure terminal
+
+spanning-tree mode rapid-pvst
+
+end
+write memory
+
+Verify:
+
+show spanning-tree
+
+============================================================
+25. VERIFY RSTP ON ALL SWITCHES
+============================================================
+
+D1:
+
+show spanning-tree
+
+D2:
+
+show spanning-tree
+
+A1:
+
+show spanning-tree
+
+The output should indicate the RSTP protocol.
+
+The practical documents that after all three switches use rapid-pvst,
+the convergence is much faster.
+
+============================================================
+26. FINAL RSTP TEST
+============================================================
+
+After all three switches are configured with rapid-pvst, test a link
+failure.
+
+For example, on D2:
+
+enable
+configure terminal
+
+interface gigabitethernet1/0/1
+shutdown
+exit
+
+end
+
+Immediately check:
+
+show spanning-tree
+
+Observe the new root port and alternate/designated roles.
+
+Restore the link:
+
+enable
+configure terminal
+
+interface gigabitethernet1/0/1
+no shutdown
+exit
+
+end
+
+Then verify:
+
+show spanning-tree
+
+============================================================
+27. FINAL VERIFICATION COMMANDS
+============================================================
+
+On D1:
+
+show spanning-tree
+show spanning-tree root
+show version | include MAC
+show interfaces trunk
+show vlan brief
+show ip interface brief
+
+On D2:
+
+show spanning-tree
+show spanning-tree root
+show version | include MAC
+show interfaces trunk
+show vlan brief
+show ip interface brief
+
+On A1:
+
+show spanning-tree
+show spanning-tree root
+show version | include MAC
+show interfaces trunk
+show vlan brief
+show ip interface brief
+
+============================================================
+28. SAVE CONFIGURATION
+============================================================
+
+On each switch:
+
+copy running-config startup-config
+
+or:
+
+write memory
+
+============================================================
+29. QUICK EXAM COMMAND SHEET
+============================================================
+
+D1:
+
+enable
+configure terminal
+hostname D1
+spanning-tree mode pvst
+vlan 2
+name SecondVLAN
+exit
+interface vlan 1
+ip address 10.0.0.1 255.0.0.0
+no shutdown
+exit
+interface range gigabitethernet1/0/1-24
+shutdown
+exit
+interface range gigabitethernet1/1/1-4
+shutdown
+exit
+interface range gigabitethernet1/0/1,gigabitethernet1/0/5-6
+switchport mode trunk
+no shutdown
+exit
+end
+write memory
+
+
+D2:
+
+enable
+configure terminal
+hostname D2
+spanning-tree mode pvst
+vlan 2
+name SecondVLAN
+exit
+interface vlan 1
+ip address 10.0.0.2 255.0.0.0
+no shutdown
+exit
+interface range gigabitethernet1/0/1-24
+shutdown
+exit
+interface range gigabitethernet1/1/1-4
+shutdown
+exit
+interface range gigabitethernet1/0/1,gigabitethernet1/0/5-6
+switchport mode trunk
+no shutdown
+exit
+end
+write memory
+
+
+A1:
+
+enable
+configure terminal
+hostname A1
+spanning-tree mode pvst
+vlan 2
+name SecondVLAN
+exit
+interface vlan 1
+ip address 10.0.0.3 255.0.0.0
+no shutdown
+exit
+interface range fastethernet0/1-24
+shutdown
+exit
+interface range gigabitethernet0/1-2
+shutdown
+exit
+interface range fastethernet0/1-4
+switchport mode trunk
+no shutdown
+exit
+end
+write memory
+
+============================================================
+30. RSTP COMMAND
+============================================================
+
+Run on ALL THREE switches:
+
+enable
+configure terminal
+spanning-tree mode rapid-pvst
+end
+write memory
+
+Verify:
+
+show spanning-tree
+
+============================================================
+31. TOPOLOGY CHANGE COMMANDS
+============================================================
+
+To simulate D1-D2 link failure:
+
+D1:
+
+enable
+configure terminal
+interface gigabitethernet1/0/1
+shutdown
+end
+
+To restore:
+
+enable
+configure terminal
+interface gigabitethernet1/0/1
+no shutdown
+end
+
+
+To observe D2's reaction with debug:
+
+D2:
+
+enable
+debug spanning-tree events
+
+configure terminal
+interface gigabitethernet1/0/1
+shutdown
+end
+
+After observing:
+
+undebug all
+
+============================================================
+32. IMPORTANT PRACTICAL NOTES
+============================================================
+
+1. The initial configuration uses PVST as specified in the lab.
+
+2. VLAN 2 is created and named SecondVLAN even though the main
+   addressing table uses VLAN 1 for management.
+
+3. The redundant links are intentional. STP prevents Layer-2 loops.
+
+4. D1 is the documented root bridge in the example output.
+
+5. A1's redundant links can appear as Alternate/Blocking ports.
+
+6. When a root link fails, STP selects another available path.
+
+7. RSTP is enabled using:
+
+   spanning-tree mode rapid-pvst
+
+8. RSTP must be enabled across the participating switches to get the
+   intended rapid convergence behavior.
+
+9. If debug output is enabled, disable it after the observation:
+
+   undebug all
+
+10. Interface names must match the actual switch model in Packet Tracer.
+    If your model uses different interface numbering, use the equivalent
+    interfaces shown by:
+
+    show ip interface brief
+
+============================================================
+33. FINAL ONE-MINUTE REVISION
+============================================================
+
+TOPOLOGY:
+
+D1 G1/0/1 <--> D2 G1/0/1
+D1 G1/0/5 <--> A1 F0/1
+D1 G1/0/6 <--> A1 F0/2
+D2 G1/0/5 <--> A1 F0/3
+D2 G1/0/6 <--> A1 F0/4
+
+IP:
+
+D1 VLAN1 = 10.0.0.1/8
+D2 VLAN1 = 10.0.0.2/8
+A1 VLAN1 = 10.0.0.3/8
+
+PVST:
+
+spanning-tree mode pvst
+
+Root:
+
+show spanning-tree root
+
+Full STP:
+
+show spanning-tree
+
+MAC:
+
+show version | include MAC
+
+RSTP:
+
+spanning-tree mode rapid-pvst
+
+Debug:
+
+debug spanning-tree events
+
+Disable debug:
+
+undebug all
+
+Save:
+
+write memory
+
+============================================================
+END OF PRACTICAL 6
+============================================================

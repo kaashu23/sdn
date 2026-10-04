@@ -1,0 +1,250 @@
+PRACTICAL 1 - CONFIGURE IP SLA ICMP ECHO
+
+TOPOLOGY
+--------
+R1 Serial1/0  <---- Serial ---->  ISP Serial1/0
+
+R1 Serial1/0   = 209.165.200.9 /30
+ISP Serial1/0  = 209.165.200.10 /30
+ISP Loopback0  = 198.133.219.1 /32
+
+Note: This practical uses the legacy IP SLA syntax supported by the
+Cisco IOS image used in GNS3:
+    ip sla monitor
+    type echo protocol ipIcmpEcho
+    ip sla monitor schedule
+
+The clock rate must be configured on the DCE side.
+
+
+R1 - BASIC CONFIGURATION
+------------------------
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+enable secret class
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+interface serial 1/0
+ip address 209.165.200.9 255.255.255.252
+no shutdown
+exit
+
+ip route 0.0.0.0 0.0.0.0 209.165.200.10
+
+end
+copy running-config startup-config
+
+
+ISP - BASIC CONFIGURATION
+-------------------------
+enable
+configure terminal
+hostname ISP
+no ip domain-lookup
+
+interface loopback 0
+ip address 198.133.219.1 255.255.255.255
+exit
+
+interface serial 1/0
+ip address 209.165.200.10 255.255.255.252
+clock rate 4032000
+no shutdown
+exit
+
+end
+copy running-config startup-config
+
+
+CHECK INTERFACES
+----------------
+R1:
+show ip interface brief
+
+ISP:
+show ip interface brief
+
+Expected:
+R1 Serial1/0  = 209.165.200.9   up/up
+ISP Serial1/0 = 209.165.200.10  up/up
+ISP Loopback0 = 198.133.219.1   up/up
+
+
+TEST CONNECTIVITY FROM R1
+-------------------------
+ping 209.165.200.10
+ping 198.133.219.1
+
+Both pings should succeed before continuing.
+
+
+CONFIGURE IP SLA ON R1
+----------------------
+enable
+configure terminal
+
+ip sla monitor 22
+type echo protocol ipIcmpEcho 198.133.219.1
+frequency 20
+exit
+
+ip sla monitor schedule 22 start-time now life forever
+
+end
+copy running-config startup-config
+
+
+VERIFY IP SLA
+-------------
+show ip sla monitor configuration 22
+show ip sla monitor statistics 22
+
+
+IP SLA PARAMETERS
+-----------------
+Operation number = 22
+Destination address = 198.133.219.1
+Operation type = ICMP Echo
+Frequency = 20 seconds
+Start time = Now
+Lifetime = Forever
+
+
+TEST IP SLA FAILURE
+-------------------
+On ISP:
+
+enable
+configure terminal
+interface loopback 0
+shutdown
+end
+
+Wait about 2 minutes.
+
+On R1:
+
+show ip sla monitor statistics 22
+
+The failure count should increase while Loopback0 is down.
+
+
+RESTORE LOOPBACK
+----------------
+On ISP:
+
+enable
+configure terminal
+interface loopback 0
+no shutdown
+end
+
+Wait for the next IP SLA operations to run.
+
+
+FINAL CHECK ON R1
+-----------------
+show ip sla monitor configuration 22
+show ip sla monitor statistics 22
+
+The statistics should show operation 22.
+After Loopback0 is restored, new operations should succeed.
+
+
+FULL R1 CONFIGURATION
+--------------------
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+enable secret class
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+interface serial 1/0
+ip address 209.165.200.9 255.255.255.252
+no shutdown
+exit
+
+ip route 0.0.0.0 0.0.0.0 209.165.200.10
+
+ip sla monitor 22
+type echo protocol ipIcmpEcho 198.133.219.1
+frequency 20
+exit
+
+ip sla monitor schedule 22 start-time now life forever
+
+end
+copy running-config startup-config
+
+
+FULL ISP CONFIGURATION
+---------------------
+enable
+configure terminal
+hostname ISP
+no ip domain-lookup
+
+interface loopback 0
+ip address 198.133.219.1 255.255.255.255
+exit
+
+interface serial 1/0
+ip address 209.165.200.10 255.255.255.252
+clock rate 4032000
+no shutdown
+exit
+
+end
+copy running-config startup-config
+
+
+FAILURE TEST - ISP
+------------------
+enable
+configure terminal
+interface loopback 0
+shutdown
+end
+
+Wait about 2 minutes.
+
+R1:
+show ip sla monitor statistics 22
+
+
+RESTORE - ISP
+-------------
+enable
+configure terminal
+interface loopback 0
+no shutdown
+end
+
+
+FINAL COMMAND - R1
+------------------
+show ip sla monitor configuration 22
+show ip sla monitor statistics 22

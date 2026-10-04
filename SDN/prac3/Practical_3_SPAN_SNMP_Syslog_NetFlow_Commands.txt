@@ -1,0 +1,212 @@
+PRACTICAL 3 – SPAN, SNMP, SYSLOG AND FLEXIBLE NETFLOW
+===============================================================
+
+NOTE:
+This TXT is prepared from the Practical 3 document. The document has some incomplete/ambiguous connection and IP information, so those parts are kept as given rather than silently changed.
+
+===============================================================
+1. IMPLEMENT SPAN TECHNOLOGIES (SWITCH PORT ANALYZER)
+===============================================================
+
+ADDRESS TABLE
+PC0 = 10.0.0.2
+PC1 = 10.0.0.3
+
+CONNECTIONS
+Connect PC0 and PC1 to the switch.
+For SPAN, the source port is FastEthernet0/0 and the destination/monitor port is FastEthernet0/2.
+
+SWITCH COMMANDS
+
+enable
+configure terminal
+monitor session 1 source interface fastethernet 0/0
+monitor session 1 destination interface fastethernet 0/2
+end
+
+VERIFICATION
+
+show monitor session 1
+show monitor detail
+
+IMPORTANT:
+The practical document gives:
+monitor session 1 source int f0/0
+monitor session 1 destination int f0/2
+
+If Packet Tracer accepts the abbreviated commands, they can also be used exactly as given.
+
+===============================================================
+2. IMPLEMENT SNMP
+===============================================================
+
+ADDRESS TABLE
+PC0 = 172.168.1.2
+PC0 Default Gateway = 172.168.1.1
+R1 F0/0 = 172.168.1.1
+R2 F0/0 = 172.168.2.1
+
+CONNECTIONS
+Connect PC0 to R1.
+R1 F0/0 uses 172.168.1.1.
+R2 F0/0 uses 172.168.2.1.
+
+PC0 CONFIGURATION
+
+IP Address: 172.168.1.2
+Default Gateway: 172.168.1.1
+
+R1 CONFIGURATION
+
+enable
+configure terminal
+interface fastethernet 0/0
+ip address 172.168.1.1 255.255.255.0
+no shutdown
+exit
+
+SNMP COMMANDS
+
+snmp-server community read ro
+snmp-server community write rw
+
+The practical document specifies the above SNMP commands.
+
+VERIFICATION
+
+show running-config
+show snmp
+
+MIB BROWSER
+
+Go to the MIB Browser and configure the SNMP settings using the community strings configured on the router.
+
+Read community: ro
+Write community: rw
+
+NOTE:
+The practical document only says “Goto MIB browser and do settings”; it does not provide the exact MIB Browser fields or SNMP version. Therefore, no additional MIB Browser settings are assumed here.
+
+===============================================================
+3. IMPLEMENT SYSLOG
+===============================================================
+
+ADDRESS INFORMATION GIVEN IN THE PRACTICAL
+
+PC1 = 30.0.0.2 / 30.0.0.1
+R2 F0/0 = server 10.0.0.1
+F0/1 = PC1 30.0.0.1
+server = 10.0.0.2 / 10.0.0.1
+
+The source document presents these entries in an incomplete format. Use the exact interface/IP arrangement from your Packet Tracer topology.
+
+SYSLOG COMMANDS
+
+service timestamps log datetime msec
+
+interface fastethernet 0/0.1
+
+The practical document specifically provides:
+service timestamps log datetime msec
+int f0/0.1
+
+CHECK SYSLOG
+
+Check the Syslog information/logs on the server.
+
+NOTE:
+The document does not provide a complete Syslog server command such as logging <server-ip>. Therefore, it is not added as a source-derived command.
+
+===============================================================
+4. IMPLEMENT FLEXIBLE NETFLOW / FLOW SIMULATOR
+===============================================================
+
+COMMANDS GIVEN IN THE PRACTICAL
+
+interface fastethernet 0/0
+ip flow ingress
+ip flow egress
+ip flow-export destination 10.0.0.2 99
+ip flow-export source fastethernet 0/0
+exit
+
+VERIFICATION
+
+show ip cache flow
+
+The practical document lists the destination as:
+10.0.0.2
+Port: 99
+
+===============================================================
+5. QUICK COMMAND LIST
+===============================================================
+
+SPAN – SWITCH
+
+enable
+configure terminal
+monitor session 1 source interface fastethernet 0/0
+monitor session 1 destination interface fastethernet 0/2
+end
+show monitor session 1
+show monitor detail
+
+SNMP – ROUTER
+
+enable
+configure terminal
+snmp-server community read ro
+snmp-server community write rw
+end
+show running-config
+show snmp
+
+SYSLOG – ROUTER
+
+enable
+configure terminal
+service timestamps log datetime msec
+interface fastethernet 0/0.1
+end
+
+FLEXIBLE NETFLOW – ROUTER
+
+enable
+configure terminal
+interface fastethernet 0/0
+ip flow ingress
+ip flow egress
+ip flow-export destination 10.0.0.2 99
+ip flow-export source fastethernet 0/0
+end
+show ip cache flow
+
+===============================================================
+6. CONNECTION SUMMARY
+===============================================================
+
+SPAN:
+PC0 -> Switch F0/0
+PC1 -> Switch F0/2
+F0/0 = SPAN source
+F0/2 = SPAN destination/monitor port
+
+SNMP:
+PC0 -> R1 F0/0
+PC0 IP = 172.168.1.2
+R1 F0/0 = 172.168.1.1
+R2 F0/0 = 172.168.2.1
+
+SYSLOG:
+The document shows PC1 = 30.0.0.2 and gateway/interface information involving 30.0.0.1 and 10.0.0.x. The exact physical topology is not fully specified in the source.
+
+FLEXIBLE NETFLOW:
+R2/router interface F0/0 is configured for ingress/egress flow according to the practical commands.
+Flow export destination = 10.0.0.2
+UDP export port = 99
+Flow export source = F0/0
+
+===============================================================
+END OF PRACTICAL 3
+===============================================================

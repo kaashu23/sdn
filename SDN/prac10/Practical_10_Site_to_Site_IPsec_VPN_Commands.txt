@@ -1,0 +1,1210 @@
+PRACTICAL 10
+PACKET TRACER - CONFIGURE AND VERIFY A SITE-TO-SITE IPsec VPN USING CLI
+
+COMMANDS + CONNECTIONS + SMALL TOPOLOGY DIAGRAM + VERIFICATION
+===============================================================
+
+SOURCE-BASED NOTE:
+This file follows the uploaded Cisco Packet Tracer lab. The source
+already has OSPF 101 and the basic device configuration preconfigured.
+Only the IPsec/VPN-related configuration is added here.
+
+===============================================================
+1. SMALL TOPOLOGY DIAGRAM
+===============================================================
+
+ PC-A                         PC-B                         PC-C
+192.168.1.3                  192.168.2.3                  192.168.3.3
+    |                            |                            |
+  S1 F0/2                     S2 F0/1                     S3 F0/18
+    |                            |                            |
+  S1 F0/1                     S2 F0/2                     S3 F0/5
+    |                            |                            |
+   R1 ========================= R2 ========================= R3
+ G0/0                         G0/0
+192.168.1.1                  192.168.2.1
+    |                            |
+ S0/0/0                      S0/0/0
+10.1.1.2  <================> 10.1.1.1
+   DCE                           |
+                                 |
+                              S0/0/1
+                           10.2.2.1 DCE
+                                 |
+                                 |
+                           10.2.2.2
+                              S0/0/1
+                                 |
+                                R3
+                              G0/0
+                           192.168.3.1
+
+                 =============================
+                    IPsec VPN Tunnel
+                      R1 <------> R3
+                 =============================
+
+IMPORTANT:
+R2 is only the transit/pass-through router.
+The IPsec VPN peers are R1 and R3.
+R2 does not participate in the VPN tunnel.
+
+===============================================================
+2. EXACT CABLE / PORT CONNECTIONS
+===============================================================
+
+LAN SIDE:
+
+PC-A NIC
+   |
+   +---- S1 F0/2
+
+S1 F0/1
+   |
+   +---- R1 G0/0
+
+PC-B NIC
+   |
+   +---- S2 F0/1
+
+S2 F0/2
+   |
+   +---- R2 G0/0
+
+PC-C NIC
+   |
+   +---- S3 F0/18
+
+S3 F0/5
+   |
+   +---- R3 G0/0
+
+
+WAN SIDE:
+
+R1 S0/0/0 (DCE)
+   |
+   +---- R2 S0/0/0
+
+R2 S0/0/1 (DCE)
+   |
+   +---- R3 S0/0/1
+
+===============================================================
+3. ADDRESSING TABLE
+===============================================================
+
+R1:
+
+G0/0
+IP: 192.168.1.1
+Mask: 255.255.255.0
+
+S0/0/0 (DCE)
+IP: 10.1.1.2
+Mask: 255.255.255.252
+
+R2:
+
+G0/0
+IP: 192.168.2.1
+Mask: 255.255.255.0
+
+S0/0/0
+IP: 10.1.1.1
+Mask: 255.255.255.252
+
+S0/0/1 (DCE)
+IP: 10.2.2.1
+Mask: 255.255.255.252
+
+R3:
+
+G0/0
+IP: 192.168.3.1
+Mask: 255.255.255.0
+
+S0/0/1
+IP: 10.2.2.2
+Mask: 255.255.255.252
+
+PC-A:
+
+IP: 192.168.1.3
+Mask: 255.255.255.0
+Gateway: 192.168.1.1
+
+PC-B:
+
+IP: 192.168.2.3
+Mask: 255.255.255.0
+Gateway: 192.168.2.1
+
+PC-C:
+
+IP: 192.168.3.3
+Mask: 255.255.255.0
+Gateway: 192.168.3.1
+
+===============================================================
+4. IPsec PARAMETERS
+===============================================================
+
+IKE / ISAKMP PHASE 1:
+
+Key distribution:
+ISAKMP
+
+Encryption:
+AES 256
+
+Hash:
+SHA-1
+
+Authentication:
+Pre-share
+
+DH Group:
+5
+
+IKE SA Lifetime:
+86400 seconds
+
+Pre-shared key:
+vpnpa55
+
+---------------------------------------------------------------
+
+IPsec PHASE 2:
+
+Transform Set:
+VPN-SET
+
+ESP Encryption:
+esp-aes
+
+ESP Authentication:
+esp-sha-hmac
+
+Crypto Map:
+VPN-MAP
+
+Crypto Map Sequence:
+10
+
+SA Establishment:
+ipsec-isakmp
+
+===============================================================
+5. PEER ADDRESSES
+===============================================================
+
+R1 VPN peer:
+
+10.2.2.2
+
+R3 VPN peer:
+
+10.1.1.2
+
+===============================================================
+6. INTERESTING TRAFFIC
+===============================================================
+
+R1 should encrypt:
+
+Source:
+192.168.1.0/24
+
+Destination:
+192.168.3.0/24
+
+R3 should encrypt the reverse:
+
+Source:
+192.168.3.0/24
+
+Destination:
+192.168.1.0/24
+
+IMPORTANT:
+Only traffic matching ACL 110 triggers the IPsec VPN.
+
+===============================================================
+7. PRECONFIGURED INFORMATION FROM THE LAB
+===============================================================
+
+The uploaded lab states that the routers are preconfigured with:
+
+Console password:
+ciscoconpa55
+
+VTY password:
+ciscovtypa55
+
+Enable password:
+ciscoenpa55
+
+SSH username:
+SSHadmin
+
+SSH password:
+ciscosshpa55
+
+OSPF:
+101
+
+Do not overwrite these values unless your Packet Tracer file differs.
+
+===============================================================
+8. PART 1 - VERIFY CONNECTIVITY FIRST
+===============================================================
+
+Before configuring IPsec, test connectivity.
+
+From PC-A:
+
+ping 192.168.3.3
+
+The source lab explicitly asks you to ping PC-C from PC-A first.
+
+Also useful:
+
+PC-A:
+ping 192.168.1.1
+
+PC-A:
+ping 192.168.2.3
+
+PC-A:
+ping 192.168.3.3
+
+If basic connectivity fails, fix routing/connectivity before
+configuring the VPN.
+
+===============================================================
+9. R1 - VERIFY SECURITY TECHNOLOGY PACKAGE
+===============================================================
+
+On R1:
+
+enable
+
+show version
+
+Look for the Security Technology package.
+
+If it is NOT enabled, use:
+
+configure terminal
+license boot module c1900 technology-package securityk9
+end
+
+Then accept the End User License Agreement when prompted.
+
+Save:
+
+copy running-config startup-config
+
+Reload:
+
+reload
+
+After reload:
+
+show version
+
+IMPORTANT:
+The source says to enable the Security Technology package only if it
+has not already been enabled.
+
+===============================================================
+10. R1 - CONFIGURE INTERESTING TRAFFIC ACL 110
+===============================================================
+
+enable
+configure terminal
+
+access-list 110 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+
+end
+
+This identifies traffic from the R1 LAN to the R3 LAN as interesting
+traffic.
+
+The implicit deny means other traffic is not encrypted by this ACL.
+
+===============================================================
+11. R1 - IKE PHASE 1 ISAKMP POLICY
+===============================================================
+
+enable
+configure terminal
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+exit
+
+crypto isakmp key vpnpa55 address 10.2.2.2
+
+end
+
+Important values:
+
+Policy:
+10
+
+Encryption:
+AES 256
+
+Authentication:
+Pre-share
+
+DH:
+Group 5
+
+Shared key:
+vpnpa55
+
+Peer:
+10.2.2.2
+
+===============================================================
+12. R1 - IKE PHASE 2 TRANSFORM SET
+===============================================================
+
+enable
+configure terminal
+
+crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+
+end
+
+This creates:
+
+Transform-set name:
+VPN-SET
+
+Encryption:
+esp-aes
+
+Authentication:
+esp-sha-hmac
+
+===============================================================
+13. R1 - CREATE CRYPTO MAP
+===============================================================
+
+enable
+configure terminal
+
+crypto map VPN-MAP 10 ipsec-isakmp
+description VPN connection to R3
+set peer 10.2.2.2
+set transform-set VPN-SET
+match address 110
+exit
+
+end
+
+The crypto map connects together:
+
+Peer:
+10.2.2.2
+
+Transform set:
+VPN-SET
+
+Interesting traffic:
+ACL 110
+
+===============================================================
+14. R1 - APPLY CRYPTO MAP TO OUTGOING INTERFACE
+===============================================================
+
+enable
+configure terminal
+
+interface serial0/0/0
+crypto map VPN-MAP
+exit
+
+end
+
+IMPORTANT:
+The source explicitly binds VPN-MAP to R1 S0/0/0.
+
+===============================================================
+15. R1 - COMPLETE IPsec CONFIGURATION
+===============================================================
+
+enable
+configure terminal
+
+access-list 110 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+exit
+
+crypto isakmp key vpnpa55 address 10.2.2.2
+
+crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+
+crypto map VPN-MAP 10 ipsec-isakmp
+description VPN connection to R3
+set peer 10.2.2.2
+set transform-set VPN-SET
+match address 110
+exit
+
+interface serial0/0/0
+crypto map VPN-MAP
+exit
+
+end
+copy running-config startup-config
+
+===============================================================
+16. R3 - VERIFY SECURITY TECHNOLOGY PACKAGE
+===============================================================
+
+On R3:
+
+enable
+
+show version
+
+If the Security Technology package is not enabled:
+
+configure terminal
+license boot module c1900 technology-package securityk9
+end
+
+Accept the license agreement.
+
+Then:
+
+copy running-config startup-config
+
+reload
+
+After reload:
+
+show version
+
+IMPORTANT:
+Only perform the license configuration if required by the router.
+
+===============================================================
+17. R3 - CONFIGURE INTERESTING TRAFFIC ACL 110
+===============================================================
+
+enable
+configure terminal
+
+access-list 110 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+end
+
+This is the reverse-direction ACL.
+
+R3 encrypts:
+
+Source:
+192.168.3.0/24
+
+Destination:
+192.168.1.0/24
+
+===============================================================
+18. R3 - IKE PHASE 1 ISAKMP POLICY
+===============================================================
+
+enable
+configure terminal
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+exit
+
+crypto isakmp key vpnpa55 address 10.1.1.2
+
+end
+
+Important values:
+
+Policy:
+10
+
+Encryption:
+AES 256
+
+Authentication:
+Pre-share
+
+DH:
+Group 5
+
+Shared key:
+vpnpa55
+
+Peer:
+10.1.1.2
+
+===============================================================
+19. R3 - IKE PHASE 2 TRANSFORM SET
+===============================================================
+
+enable
+configure terminal
+
+crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+
+end
+
+===============================================================
+20. R3 - CREATE CRYPTO MAP
+===============================================================
+
+enable
+configure terminal
+
+crypto map VPN-MAP 10 ipsec-isakmp
+description VPN connection to R1
+set peer 10.1.1.2
+set transform-set VPN-SET
+match address 110
+exit
+
+end
+
+===============================================================
+21. R3 - APPLY CRYPTO MAP TO OUTGOING INTERFACE
+===============================================================
+
+enable
+configure terminal
+
+interface serial0/0/1
+crypto map VPN-MAP
+exit
+
+end
+copy running-config startup-config
+
+IMPORTANT:
+The source notes that this step is not graded, but it is included
+because it is required to bind the crypto map to the interface.
+
+===============================================================
+22. R3 - COMPLETE IPsec CONFIGURATION
+===============================================================
+
+enable
+configure terminal
+
+access-list 110 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+exit
+
+crypto isakmp key vpnpa55 address 10.1.1.2
+
+crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+
+crypto map VPN-MAP 10 ipsec-isakmp
+description VPN connection to R1
+set peer 10.1.1.2
+set transform-set VPN-SET
+match address 110
+exit
+
+interface serial0/0/1
+crypto map VPN-MAP
+exit
+
+end
+copy running-config startup-config
+
+===============================================================
+23. PART 3 - VERIFY THE VPN BEFORE INTERESTING TRAFFIC
+===============================================================
+
+On R1:
+
+show crypto ipsec sa
+
+Before interesting traffic, the source says the packet counters
+should be 0.
+
+Look for:
+
+packets encapsulated
+packets encrypted
+packets decapsulated
+packets decrypted
+
+They should initially be 0.
+
+===============================================================
+24. CREATE INTERESTING TRAFFIC
+===============================================================
+
+From PC-A:
+
+ping 192.168.3.3
+
+This is interesting traffic because:
+
+Source:
+192.168.1.0/24
+
+Destination:
+192.168.3.0/24
+
+This traffic should trigger the IPsec VPN.
+
+===============================================================
+25. VERIFY IPsec AFTER INTERESTING TRAFFIC
+===============================================================
+
+On R1:
+
+show crypto ipsec sa
+
+The source says the packet counters should now be greater than 0.
+
+This indicates that traffic is being encapsulated/encrypted and
+decapsulated/decrypted through the VPN.
+
+===============================================================
+26. CREATE UNINTERESTING TRAFFIC
+===============================================================
+
+From PC-A:
+
+ping 192.168.2.3
+
+This traffic is between:
+
+192.168.1.0/24
+
+and
+
+192.168.2.0/24
+
+It does NOT match ACL 110.
+
+Therefore, it should NOT trigger IPsec encryption.
+
+===============================================================
+27. VERIFY UNINTERESTING TRAFFIC
+===============================================================
+
+On R1:
+
+show crypto ipsec sa
+
+The source says the packet counters should NOT change after the
+uninteresting PC-A -> PC-B ping.
+
+This verifies that traffic not matching ACL 110 is not encrypted.
+
+===============================================================
+28. IMPORTANT: ROUTER PING IS NOT INTERESTING TRAFFIC
+===============================================================
+
+The source specifically notes:
+
+Ping from R1 to PC-C is NOT interesting traffic.
+
+Ping from R3 to PC-A is NOT interesting traffic.
+
+Why?
+
+The ACL matches LAN-to-LAN traffic:
+
+192.168.1.0/24 -> 192.168.3.0/24
+
+It does not match traffic sourced from the router itself.
+
+For the lab test, use:
+
+PC-A -> PC-C
+
+===============================================================
+29. USEFUL VERIFICATION COMMANDS
+===============================================================
+
+On R1:
+
+show crypto isakmp policy
+show crypto isakmp sa
+show crypto ipsec transform-set
+show crypto map
+show crypto ipsec sa
+show access-lists 110
+
+On R3:
+
+show crypto isakmp policy
+show crypto isakmp sa
+show crypto ipsec transform-set
+show crypto map
+show crypto ipsec sa
+show access-lists 110
+
+Also:
+
+show ip interface brief
+show ip route
+
+===============================================================
+30. WHAT TO CHECK IN show crypto isakmp sa
+===============================================================
+
+Use:
+
+show crypto isakmp sa
+
+After interesting traffic has triggered IKE, look for an active IKE
+security association.
+
+The exact state/output can vary by Packet Tracer version, so use the
+actual device output rather than expecting an identical timer/state.
+
+===============================================================
+31. WHAT TO CHECK IN show crypto ipsec sa
+===============================================================
+
+Use:
+
+show crypto ipsec sa
+
+Check:
+
+Peer address
+10.2.2.2 on R1
+
+Peer address
+10.1.1.2 on R3
+
+Transform set:
+VPN-SET
+
+Packet counters:
+encapsulated
+encrypted
+decapsulated
+decrypted
+
+After PC-A -> PC-C traffic, counters should be greater than zero.
+
+===============================================================
+32. WHAT TO CHECK IN show crypto map
+===============================================================
+
+On R1:
+
+show crypto map
+
+Verify:
+
+Crypto map:
+VPN-MAP
+
+Sequence:
+10
+
+Peer:
+10.2.2.2
+
+Transform set:
+VPN-SET
+
+Match address:
+110
+
+Interface:
+Serial0/0/0
+
+On R3:
+
+show crypto map
+
+Verify:
+
+Crypto map:
+VPN-MAP
+
+Sequence:
+10
+
+Peer:
+10.1.1.2
+
+Transform set:
+VPN-SET
+
+Match address:
+110
+
+Interface:
+Serial0/0/1
+
+===============================================================
+33. TROUBLESHOOTING - PC-A CANNOT PING PC-C
+===============================================================
+
+STEP 1:
+Check basic connectivity:
+
+PC-A:
+ping 192.168.1.1
+
+PC-A:
+ping 192.168.3.1
+
+STEP 2:
+Check interfaces:
+
+R1:
+show ip interface brief
+
+R2:
+show ip interface brief
+
+R3:
+show ip interface brief
+
+STEP 3:
+Check routing:
+
+R1:
+show ip route
+
+R3:
+show ip route
+
+The source states OSPF 101 is already configured.
+
+STEP 4:
+Check ACL:
+
+R1:
+show access-lists 110
+
+R3:
+show access-lists 110
+
+Correct R1 ACL:
+
+access-list 110 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+
+Correct R3 ACL:
+
+access-list 110 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+===============================================================
+34. TROUBLESHOOTING - IKE DOES NOT FORM
+===============================================================
+
+Check both sides use:
+
+AES 256
+Pre-share
+DH group 5
+Key vpnpa55
+
+R1:
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+
+crypto isakmp key vpnpa55 address 10.2.2.2
+
+R3:
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+
+crypto isakmp key vpnpa55 address 10.1.1.2
+
+Also verify peer addresses are correct.
+
+===============================================================
+35. TROUBLESHOOTING - IPsec COUNTERS STAY AT ZERO
+===============================================================
+
+First generate the correct traffic:
+
+PC-A:
+ping 192.168.3.3
+
+Then check:
+
+R1:
+show crypto ipsec sa
+
+If counters stay at zero, verify:
+
+1. ACL 110
+2. Crypto map
+3. Peer address
+4. Transform set
+5. Crypto map applied to Serial0/0/0
+6. R3 crypto map applied to Serial0/0/1
+
+===============================================================
+36. TROUBLESHOOTING - UNINTERESTING TRAFFIC CHANGES COUNTERS
+===============================================================
+
+Test:
+
+PC-A:
+ping 192.168.2.3
+
+Then:
+
+R1:
+show crypto ipsec sa
+
+The source expects the VPN counters not to change from this traffic.
+
+If they do, check whether ACL 110 was configured incorrectly.
+
+===============================================================
+37. FULL R1 COMMAND BLOCK
+===============================================================
+
+enable
+configure terminal
+
+access-list 110 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+exit
+
+crypto isakmp key vpnpa55 address 10.2.2.2
+
+crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+
+crypto map VPN-MAP 10 ipsec-isakmp
+description VPN connection to R3
+set peer 10.2.2.2
+set transform-set VPN-SET
+match address 110
+exit
+
+interface serial0/0/0
+crypto map VPN-MAP
+exit
+
+end
+copy running-config startup-config
+
+===============================================================
+38. FULL R3 COMMAND BLOCK
+===============================================================
+
+enable
+configure terminal
+
+access-list 110 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+crypto isakmp policy 10
+encryption aes 256
+authentication pre-share
+group 5
+exit
+
+crypto isakmp key vpnpa55 address 10.1.1.2
+
+crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+
+crypto map VPN-MAP 10 ipsec-isakmp
+description VPN connection to R1
+set peer 10.1.1.2
+set transform-set VPN-SET
+match address 110
+exit
+
+interface serial0/0/1
+crypto map VPN-MAP
+exit
+
+end
+copy running-config startup-config
+
+===============================================================
+39. FINAL PRACTICAL TEST SEQUENCE
+===============================================================
+
+STEP 1:
+Build the topology exactly.
+
+STEP 2:
+Verify IP addresses.
+
+STEP 3:
+Verify OSPF 101/basic connectivity.
+
+STEP 4:
+From PC-A:
+
+ping 192.168.3.3
+
+STEP 5:
+Configure R1 IPsec.
+
+STEP 6:
+Configure R3 IPsec.
+
+STEP 7:
+Before interesting traffic:
+
+R1:
+show crypto ipsec sa
+
+Counters should be 0.
+
+STEP 8:
+From PC-A:
+
+ping 192.168.3.3
+
+STEP 9:
+Check:
+
+R1:
+show crypto ipsec sa
+
+Counters should now be > 0.
+
+STEP 10:
+From PC-A:
+
+ping 192.168.2.3
+
+STEP 11:
+Check:
+
+R1:
+show crypto ipsec sa
+
+Counters should not change because PC-A -> PC-B is uninteresting
+traffic.
+
+===============================================================
+40. ONE-MINUTE EXAM REVISION
+===============================================================
+
+R1 LAN:
+192.168.1.0/24
+
+R3 LAN:
+192.168.3.0/24
+
+VPN peers:
+
+R1 -> 10.2.2.2
+R3 -> 10.1.1.2
+
+R1 WAN:
+10.1.1.2/30
+
+R2:
+10.1.1.1/30
+10.2.2.1/30
+
+R3 WAN:
+10.2.2.2/30
+
+IKE:
+
+AES 256
+Pre-share
+DH 5
+Key = vpnpa55
+
+Transform:
+
+VPN-SET
+esp-aes
+esp-sha-hmac
+
+Crypto map:
+
+VPN-MAP
+Sequence 10
+
+ACL:
+
+R1:
+192.168.1.0/24 -> 192.168.3.0/24
+
+R3:
+192.168.3.0/24 -> 192.168.1.0/24
+
+R1 crypto map:
+Serial0/0/0
+
+R3 crypto map:
+Serial0/0/1
+
+Interesting test:
+
+PC-A -> PC-C
+
+Uninteresting test:
+
+PC-A -> PC-B
+
+Main verification:
+
+show crypto isakmp sa
+show crypto ipsec sa
+show crypto map
+show access-lists 110
+
+===============================================================
+41. SOURCE-SPECIFIC NOTES
+===============================================================
+
+1. The source says R2 is a pass-through router and has no knowledge
+   of the VPN.
+
+2. The source says the VPN tunnel is R1 to R3 through R2.
+
+3. The source specifies AES 256, SHA-1, pre-shared authentication,
+   DH group 5, and 86400-second IKE SA lifetime.
+
+4. The source says Packet Tracer currently supports DH group 5 and
+   notes that production networks should use at least DH 14.
+
+5. The source says the R3 crypto-map interface step is not graded,
+   but it is included in this practical TXT because the command is
+   part of the source lab.
+
+6. The source says completion should be 100% under Check Results.
+
+===============================================================
+END OF PRACTICAL 10 - SITE-TO-SITE IPsec VPN
+===============================================================

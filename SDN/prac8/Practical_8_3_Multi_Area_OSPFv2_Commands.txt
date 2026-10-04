@@ -1,0 +1,819 @@
+PRACTICAL 8.3
+LAB - CONFIGURING MULTI-AREA OSPFv2
+Commands, Connections, Small Topology Diagram and Verification
+
+============================================================
+QUICK TOPOLOGY DIAGRAM - USE THIS TO BUILD THE NETWORK
+============================================================
+
+                         AREA 0
+                  +----------------+
+                  |                |
+              S0/0/0            S0/0/1
+             192.168.12.1      192.168.23.1
+                  |                |
+                +-----+          +-----+
+                | R1  |          | R2  |
+                +-----+          +-----+
+                  |                |
+              Area 1            Area 3
+              Lo1/Lo2          Lo6
+                  |                |
+                  |             S0/0/1
+                  |                |
+                  |              +-----+
+                  +--------------| R3  |
+                                 +-----+
+                                  |
+                                Lo4/Lo5
+
+MORE CLEARLY:
+
+R1 S0/0/0 (DCE)  <==========>  R2 S0/0/0
+192.168.12.1/30                  192.168.12.2/30
+        AREA 0
+
+R2 S0/0/1 (DCE)  <==========>  R3 S0/0/1
+192.168.23.1/30                  192.168.23.2/30
+        AREA 3
+
+R1 LOOPBACKS:
+Lo0 = 209.165.200.225/30  (simulated Internet/default route)
+Lo1 = 192.168.1.1/24       (Area 1)
+Lo2 = 192.168.2.1/24       (Area 1)
+
+R2 LOOPBACK:
+Lo6 = 192.168.6.1/24       (Area 3)
+
+R3 LOOPBACKS:
+Lo4 = 192.168.4.1/24       (Area 3)
+Lo5 = 192.168.5.1/24       (Area 3)
+
+============================================================
+1. PORT / CABLE CONNECTIONS
+============================================================
+
+R1 S0/0/0 (DCE)  <---------->  R2 S0/0/0
+R2 S0/0/1 (DCE)  <---------->  R3 S0/0/1
+
+Use Serial DCE/DTE cables as shown in the topology.
+
+The DCE interfaces are:
+R1 S0/0/0
+R2 S0/0/1
+
+DCE interfaces require:
+
+clock rate 128000
+
+All serial interfaces use:
+
+bandwidth 128
+
+============================================================
+2. ADDRESSING TABLE
+============================================================
+
+R1:
+
+Lo0
+IP: 209.165.200.225
+Mask: 255.255.255.252
+
+Lo1
+IP: 192.168.1.1
+Mask: 255.255.255.0
+
+Lo2
+IP: 192.168.2.1
+Mask: 255.255.255.0
+
+S0/0/0
+IP: 192.168.12.1
+Mask: 255.255.255.252
+DCE
+
+R2:
+
+Lo6
+IP: 192.168.6.1
+Mask: 255.255.255.0
+
+S0/0/0
+IP: 192.168.12.2
+Mask: 255.255.255.252
+
+S0/0/1
+IP: 192.168.23.1
+Mask: 255.255.255.252
+DCE
+
+R3:
+
+Lo4
+IP: 192.168.4.1
+Mask: 255.255.255.0
+
+Lo5
+IP: 192.168.5.1
+Mask: 255.255.255.0
+
+S0/0/1
+IP: 192.168.23.2
+Mask: 255.255.255.252
+
+============================================================
+3. OSPF AREA PLAN
+============================================================
+
+R1:
+Area 0 = 192.168.12.0/30
+Area 1 = 192.168.1.0/24
+Area 1 = 192.168.2.0/24
+
+R2:
+Area 0 = 192.168.12.0/30
+Area 3 = 192.168.23.0/30
+Area 3 = 192.168.6.0/24
+
+R3:
+Area 3 = 192.168.23.0/30
+Area 3 = 192.168.4.0/24
+Area 3 = 192.168.5.0/24
+
+OSPF PROCESS ID:
+1
+
+ROUTER IDs:
+R1 = 1.1.1.1
+R2 = 2.2.2.2
+R3 = 3.3.3.3
+
+============================================================
+4. OSPF ROUTER TYPES FROM THE SOURCE
+============================================================
+
+R1:
+ABR + ASBR
+
+R2:
+ABR
+
+R3:
+Internal Router
+
+Backbone router:
+R1 and R2 participate in Area 0.
+
+Area Border Routers:
+R1 and R2.
+
+Autonomous System Boundary Router:
+R1, because it originates the simulated default route.
+
+============================================================
+5. R1 - BASIC CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+
+enable secret class
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+banner motd #Unauthorized access is prohibited!#
+
+============================================================
+6. R1 - LOOPBACK CONFIGURATION
+============================================================
+
+interface loopback0
+ip address 209.165.200.225 255.255.255.252
+exit
+
+interface loopback1
+ip address 192.168.1.1 255.255.255.0
+exit
+
+interface loopback2
+ip address 192.168.2.1 255.255.255.0
+exit
+
+============================================================
+7. R1 - SERIAL INTERFACE
+============================================================
+
+interface serial0/0/0
+ip address 192.168.12.1 255.255.255.252
+clock rate 128000
+bandwidth 128
+no shutdown
+exit
+
+end
+copy running-config startup-config
+
+============================================================
+8. R2 - BASIC CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname R2
+no ip domain-lookup
+
+enable secret class
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+banner motd #Unauthorized access is prohibited!#
+
+============================================================
+9. R2 - LOOPBACK CONFIGURATION
+============================================================
+
+interface loopback6
+ip address 192.168.6.1 255.255.255.0
+exit
+
+============================================================
+10. R2 - SERIAL INTERFACES
+============================================================
+
+interface serial0/0/0
+ip address 192.168.12.2 255.255.255.252
+bandwidth 128
+no shutdown
+exit
+
+interface serial0/0/1
+ip address 192.168.23.1 255.255.255.252
+clock rate 128000
+bandwidth 128
+no shutdown
+exit
+
+end
+copy running-config startup-config
+
+============================================================
+11. R3 - BASIC CONFIGURATION
+============================================================
+
+enable
+configure terminal
+hostname R3
+no ip domain-lookup
+
+enable secret class
+
+line console 0
+password cisco
+login
+logging synchronous
+exit
+
+line vty 0 4
+password cisco
+login
+exit
+
+banner motd #Unauthorized access is prohibited!#
+
+============================================================
+12. R3 - LOOPBACK CONFIGURATION
+============================================================
+
+interface loopback4
+ip address 192.168.4.1 255.255.255.0
+exit
+
+interface loopback5
+ip address 192.168.5.1 255.255.255.0
+exit
+
+============================================================
+13. R3 - SERIAL INTERFACE
+============================================================
+
+interface serial0/0/1
+ip address 192.168.23.2 255.255.255.252
+bandwidth 128
+no shutdown
+exit
+
+end
+copy running-config startup-config
+
+============================================================
+14. VERIFY LAYER 3 CONNECTIVITY
+============================================================
+
+On R1:
+
+show ip interface brief
+ping 192.168.12.2
+
+On R2:
+
+show ip interface brief
+ping 192.168.12.1
+ping 192.168.23.2
+
+On R3:
+
+show ip interface brief
+ping 192.168.23.1
+
+All connected serial interfaces should be up/up.
+
+============================================================
+15. R1 - MULTI-AREA OSPF CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+router ospf 1
+router-id 1.1.1.1
+
+network 192.168.1.0 0.0.0.255 area 1
+network 192.168.2.0 0.0.0.255 area 1
+network 192.168.12.0 0.0.0.3 area 0
+
+passive-interface loopback1
+passive-interface loopback2
+
+exit
+
+============================================================
+16. R1 - DEFAULT ROUTE TO SIMULATED INTERNET
+============================================================
+
+The source uses Lo0 as the exit interface for the default route.
+
+ip route 0.0.0.0 0.0.0.0 loopback0
+
+Then advertise the default route into OSPF:
+
+router ospf 1
+default-information originate
+exit
+
+end
+copy running-config startup-config
+
+The source notes that the default-route warning about using a
+non-point-to-point interface may appear when Loopback0 is used.
+This is expected in the lab.
+
+============================================================
+17. R2 - MULTI-AREA OSPF CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+router ospf 1
+router-id 2.2.2.2
+
+network 192.168.6.0 0.0.0.255 area 3
+network 192.168.12.0 0.0.0.3 area 0
+network 192.168.23.0 0.0.0.3 area 3
+
+passive-interface loopback6
+
+exit
+
+end
+copy running-config startup-config
+
+============================================================
+18. R3 - MULTI-AREA OSPF CONFIGURATION
+============================================================
+
+enable
+configure terminal
+
+router ospf 1
+router-id 3.3.3.3
+
+network 192.168.4.0 0.0.0.255 area 3
+network 192.168.5.0 0.0.0.255 area 3
+network 192.168.23.0 0.0.0.3 area 3
+
+passive-interface loopback4
+passive-interface loopback5
+
+exit
+
+end
+copy running-config startup-config
+
+============================================================
+19. VERIFY OSPF SETTINGS
+============================================================
+
+On R1:
+
+show ip protocols
+
+On R2:
+
+show ip protocols
+
+On R3:
+
+show ip protocols
+
+Check:
+- OSPF process = 1
+- Router IDs
+- Networks assigned to each area
+- Passive loopback interfaces
+- R1 default-route propagation
+
+============================================================
+20. VERIFY OSPF NEIGHBORS
+============================================================
+
+R1:
+
+show ip ospf neighbor
+
+Expected neighbor:
+R2 = 2.2.2.2
+State should become FULL.
+
+R2:
+
+show ip ospf neighbor
+
+Expected neighbors:
+R1 = 1.1.1.1
+R3 = 3.3.3.3
+
+State should become FULL.
+
+R3:
+
+show ip ospf neighbor
+
+Expected neighbor:
+R2 = 2.2.2.2
+State should become FULL.
+
+============================================================
+21. VERIFY OSPF INTERFACE SUMMARY
+============================================================
+
+On R1:
+
+show ip ospf interface brief
+
+On R2:
+
+show ip ospf interface brief
+
+On R3:
+
+show ip ospf interface brief
+
+The source's example shows the serial links as P2P and loopbacks as
+LOOP interfaces.
+
+============================================================
+22. VERIFY ROUTING TABLES
+============================================================
+
+On R1:
+
+show ip route
+show ip route ospf
+
+On R2:
+
+show ip route
+show ip route ospf
+
+On R3:
+
+show ip route
+show ip route ospf
+
+Look for routes learned through OSPF from the other areas.
+
+R1 should also originate the default route:
+
+0.0.0.0/0
+
+============================================================
+23. PING TESTS
+============================================================
+
+From R1:
+
+ping 192.168.12.2
+ping 192.168.23.2
+ping 192.168.6.1
+ping 192.168.4.1
+ping 192.168.5.1
+
+From R2:
+
+ping 192.168.12.1
+ping 192.168.23.2
+ping 192.168.1.1
+ping 192.168.2.1
+ping 192.168.4.1
+ping 192.168.5.1
+
+From R3:
+
+ping 192.168.23.1
+ping 192.168.12.1
+ping 192.168.1.1
+ping 192.168.2.1
+ping 192.168.6.1
+
+============================================================
+24. OSPF AREA REVISION
+============================================================
+
+AREA 0:
+R1-R2 serial network
+192.168.12.0/30
+
+AREA 1:
+R1 Lo1
+192.168.1.0/24
+
+R1 Lo2
+192.168.2.0/24
+
+AREA 3:
+R2-R3 serial network
+192.168.23.0/30
+
+R2 Lo6
+192.168.6.0/24
+
+R3 Lo4
+192.168.4.0/24
+
+R3 Lo5
+192.168.5.0/24
+
+============================================================
+25. QUICK OSPF COMMANDS
+============================================================
+
+R1:
+
+router ospf 1
+router-id 1.1.1.1
+network 192.168.1.0 0.0.0.255 area 1
+network 192.168.2.0 0.0.0.255 area 1
+network 192.168.12.0 0.0.0.3 area 0
+passive-interface loopback1
+passive-interface loopback2
+exit
+
+ip route 0.0.0.0 0.0.0.0 loopback0
+
+router ospf 1
+default-information originate
+exit
+
+
+R2:
+
+router ospf 1
+router-id 2.2.2.2
+network 192.168.6.0 0.0.0.255 area 3
+network 192.168.12.0 0.0.0.3 area 0
+network 192.168.23.0 0.0.0.3 area 3
+passive-interface loopback6
+exit
+
+
+R3:
+
+router ospf 1
+router-id 3.3.3.3
+network 192.168.4.0 0.0.0.255 area 3
+network 192.168.5.0 0.0.0.255 area 3
+network 192.168.23.0 0.0.0.3 area 3
+passive-interface loopback4
+passive-interface loopback5
+exit
+
+============================================================
+26. MAIN VERIFICATION COMMANDS
+============================================================
+
+show ip interface brief
+
+show ip protocols
+
+show ip ospf neighbor
+
+show ip ospf interface brief
+
+show ip route
+
+show ip route ospf
+
+============================================================
+27. COMMON PRACTICAL CHECKS
+============================================================
+
+IF SERIAL INTERFACE IS DOWN:
+
+Check:
+
+show ip interface brief
+
+Verify:
+
+no shutdown
+
+On DCE interfaces verify:
+
+clock rate 128000
+
+On ALL serial interfaces verify:
+
+bandwidth 128
+
+------------------------------------------------------------
+
+IF OSPF NEIGHBOR IS NOT FULL:
+
+Check:
+
+show ip ospf neighbor
+show ip ospf interface brief
+show ip protocols
+
+Verify both routers have the correct serial network in the same OSPF
+area.
+
+R1-R2:
+192.168.12.0/30 must be Area 0.
+
+R2-R3:
+192.168.23.0/30 must be Area 3.
+
+------------------------------------------------------------
+
+IF LOOPBACK ROUTE IS MISSING:
+
+Check:
+
+show ip route connected
+show ip protocols
+
+Verify the correct network statement and area.
+
+------------------------------------------------------------
+
+IF R2/R3 CANNOT REACH R1 LOOPBACK:
+
+On R1 verify:
+
+ip route 0.0.0.0 0.0.0.0 loopback0
+
+and:
+
+router ospf 1
+default-information originate
+
+Then on R2/R3:
+
+show ip route ospf
+
+============================================================
+28. IMPORTANT SOURCE NOTE
+============================================================
+
+The source's addressing table on page 1 specifies:
+
+R3 Lo4 = 192.168.4.1 /24
+R3 Lo5 = 192.168.5.1 /24
+
+However, the command appendix on pages 7-8 contains a few lines with
+different/incomplete masks, including a Lo4 /30 line and a Lo5 network
+statement with 0.0.0.3.
+
+For this TXT, the MAIN configuration follows the addressing table and
+topology at the beginning of the uploaded lab:
+Lo4 = 192.168.4.1 255.255.255.0
+Lo5 = 192.168.5.1 255.255.255.0
+
+Do not mix the appendix's apparent mask typo into the main configuration.
+
+============================================================
+29. SOURCE-BASED ROUTER TYPES
+============================================================
+
+R1:
+Area Border Router (ABR)
+Autonomous System Boundary Router (ASBR)
+
+R2:
+Area Border Router (ABR)
+
+R3:
+Internal Router
+
+The source's show ip protocols output explicitly identifies:
+R1 as an area border and autonomous system boundary router,
+R2 as an area border router, and R3 as an internal router.
+
+============================================================
+30. FINAL EXAM REVISION
+============================================================
+
+TOPOLOGY:
+
+R1 S0/0/0 <--> R2 S0/0/0
+R2 S0/0/1 <--> R3 S0/0/1
+
+DCE:
+R1 S0/0/0
+R2 S0/0/1
+
+Clock:
+128000
+
+Bandwidth:
+128
+
+OSPF:
+Process 1
+
+Router IDs:
+R1 = 1.1.1.1
+R2 = 2.2.2.2
+R3 = 3.3.3.3
+
+Areas:
+
+R1:
+192.168.1.0/24 -> Area 1
+192.168.2.0/24 -> Area 1
+192.168.12.0/30 -> Area 0
+
+R2:
+192.168.6.0/24 -> Area 3
+192.168.12.0/30 -> Area 0
+192.168.23.0/30 -> Area 3
+
+R3:
+192.168.4.0/24 -> Area 3
+192.168.5.0/24 -> Area 3
+192.168.23.0/30 -> Area 3
+
+Passive:
+R1 Lo1, Lo2
+R2 Lo6
+R3 Lo4, Lo5
+
+Default route:
+ip route 0.0.0.0 0.0.0.0 loopback0
+
+Advertise default:
+default-information originate
+
+Verify:
+
+show ip protocols
+show ip ospf neighbor
+show ip ospf interface brief
+show ip route ospf
+
+============================================================
+END OF PRACTICAL 8.3
+============================================================

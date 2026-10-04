@@ -1,0 +1,67 @@
+SDN PRACTICAL COMMANDS
+=======================
+
+PRACTICAL 3 - SPAN TECHNOLOGY
+-----------------------------
+
+TOPOLOGY / ADDRESSING
+
+PC1 ---- F0/1 [SWITCH] F0/2 ---- PC2
+
+PC1 IP: 10.0.0.2
+PC2 IP: 10.0.0.3
+
+
+SWITCH CONFIGURATION
+--------------------
+
+enable
+configure terminal
+monitor session 1 source interface fa0/1
+monitor session 1 destination interface fa0/2
+end
+
+
+VERIFICATION
+------------
+
+show monitor session 1
+show monitor
+
+
+PRACTICAL 3 - SNMP
+------------------
+
+TOPOLOGY / ADDRESSING
+
+PC0 ---- SWITCH ---- R1 ---- R2
+
+PC0 IP: 192.168.1.2
+PC0 Default Gateway: 192.168.1.1
+
+R1 Fa0: 192.168.1.1
+R2 Fa0: 192.168.2.1
+
+
+R1 CONFIGURATION
+----------------
+
+enable
+configure terminal
+snmp-server community read ro
+snmp-server community write rw
+end
+
+
+VERIFICATION
+------------
+
+show running-config | include snmp
+
+
+MIB BROWSER
+-----------
+
+R1 IP Address: 192.168.1.1
+
+Open the MIB Browser from the PC and use R1 IP address 192.168.1.1 for the required SNMP/MIB Browser operations.

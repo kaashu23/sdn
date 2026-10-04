@@ -1,0 +1,188 @@
+PRACTICAL 7 - ETHERCHANNEL
+
+TOPOLOGY / ADDRESSING
+
+3 switches:
+S1
+S2
+S3
+
+EtherChannel groups shown in the practical:
+Port-Channel 1 - PAgP
+Port-Channel 2 - LACP
+Port-Channel 3 - LACP
+
+S1
+G0/1-2 and F0/21-22
+Trunk / EtherChannel links as shown in the practical
+
+S2
+G0/1-2 and F0/23-24
+Trunk / EtherChannel links as shown in the practical
+
+S3
+F0/21-24
+Trunk / EtherChannel links as shown in the practical
+
+
+S1
+
+enable
+configure terminal
+hostname S1
+interface range g0/1 - 2, f0/21 - 22
+switchport mode trunk
+switchport nonegotiate
+exit
+
+interface range f0/21 - 22
+shutdown
+channel-group 1 mode desirable
+no shutdown
+exit
+
+interface port-channel 1
+switchport mode trunk
+exit
+
+interface range g0/1 - 2
+shutdown
+channel-group 2 mode active
+no shutdown
+exit
+
+interface port-channel 2
+switchport mode trunk
+exit
+
+show etherchannel summary
+
+
+S2
+
+enable
+configure terminal
+hostname S2
+interface range g0/1 - 2, f0/23 - 24
+switchport mode trunk
+switchport nonegotiate
+exit
+
+interface range g0/1 - 2
+shutdown
+channel-group 2 mode active
+no shutdown
+exit
+
+interface port-channel 2
+switchport mode trunk
+exit
+
+interface range f0/23 - 24
+shutdown
+channel-group 3 mode passive
+no shutdown
+exit
+
+interface port-channel 3
+switchport mode trunk
+exit
+
+show etherchannel summary
+
+
+S3
+
+enable
+configure terminal
+hostname S3
+interface range f0/21 - 24
+switchport mode trunk
+switchport nonegotiate
+exit
+
+interface range f0/21 - 22
+shutdown
+channel-group 1 mode desirable
+no shutdown
+exit
+
+interface port-channel 1
+switchport mode trunk
+exit
+
+interface range f0/23 - 24
+shutdown
+channel-group 3 mode passive
+no shutdown
+exit
+
+interface port-channel 3
+switchport mode trunk
+exit
+
+show etherchannel summary
+
+
+VERIFICATION
+
+S1:
+show etherchannel summary
+show spanning-tree active
+
+S2:
+show etherchannel summary
+
+S3:
+show etherchannel summary
+
+
+⚠️ CHECK THIS COMMAND / CONFIGURATION:
+
+switchport nonegotiate
+
+This is the correct Cisco IOS command spelling. If your handwritten command is intended as "switchport nonnegotiate", that spelling is incorrect. Use:
+switchport nonegotiate
+
+
+⚠️ CHECK:
+
+S2:
+channel-group 3 mode passive
+
+S3:
+channel-group 3 mode passive
+
+Both sides of an LACP EtherChannel cannot be passive. At least one side must be active. Therefore, this configuration will NOT form an LACP EtherChannel if both sides remain passive.
+
+Correct example:
+S2:
+channel-group 3 mode active
+
+S3:
+channel-group 3 mode passive
+
+The handwritten passive commands are preserved above and flagged rather than removed.
+
+
+⚠️ CHECK:
+
+S1:
+channel-group 1 mode desirable
+
+S3:
+channel-group 1 mode desirable
+
+Both sides using PAgP desirable can form an EtherChannel, so this pairing is valid if these are the two ends of the same physical links.
+
+
+⚠️ CHECK:
+
+interface range g0/1 - 2, f0/21 - 22
+
+The exact interfaces depend on the switch model and physical topology. Do not use an interface number that does not exist on your switch.
+
+
+IMPORTANT ETHERCHANNEL RULE
+
+All member interfaces of the same EtherChannel should have matching Layer-2 settings, including speed/duplex and trunk/access configuration. The physical interfaces should be configured consistently before forming the channel.

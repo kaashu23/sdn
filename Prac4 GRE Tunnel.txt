@@ -1,0 +1,123 @@
+SDN PRACTICAL COMMANDS
+=======================
+
+PRACTICAL 4 - GRE TUNNEL
+-------------------------
+
+TOPOLOGY / ADDRESSING
+
+3 Routers, 2 Switches, 4 PCs
+
+PC0: 192.168.1.2
+PC1: 192.168.1.3
+Gateway: 192.168.1.1
+
+PC2: 192.168.2.2
+PC3: 192.168.2.3
+Gateway: 192.168.2.1
+
+Router-to-Router links mentioned:
+10.0.0.1
+10.0.0.2
+20.0.0.1
+20.0.0.2
+
+GRE Tunnel:
+R1 Tunnel1: 50.50.50.1/24
+R3 Tunnel1: 50.50.50.2/24
+
+
+R1 CONFIGURATION
+----------------
+
+enable
+configure terminal
+interface tunnel 1
+ip address 50.50.50.1 255.255.255.0
+
+⚠️ CHECK:
+tunnel source fa1/1
+
+The handwritten command uses Fa1/1. The tunnel source must be the R1 interface that has reachability to R3's tunnel destination. If the topology uses another interface, replace Fa1/1 with the actual R1 interface.
+
+tunnel destination 20.0.0.1
+exit
+
+⚠️ CHECK:
+show ip int br
+
+This is a verification command. If entered while still in configuration mode, use:
+do show ip int br
+
+interface tunnel 1
+no shutdown
+exit
+
+
+R3 CONFIGURATION
+----------------
+
+enable
+configure terminal
+interface tunnel 1
+ip address 50.50.50.2 255.255.255.0
+
+⚠️ CHECK:
+tunnel source fa1/1
+
+The handwritten command uses Fa1/1. The tunnel source must be the R3 interface that has reachability to R1's tunnel destination. If the topology uses another interface, replace Fa1/1 with the actual R3 interface.
+
+tunnel destination 10.0.0.1
+exit
+
+⚠️ CHECK:
+show ip int br
+
+This is a verification command. If entered while still in configuration mode, use:
+do show ip int br
+
+interface tunnel 1
+no shutdown
+exit
+
+
+VERIFICATION
+------------
+
+On R1:
+show ip interface brief
+
+On R3:
+show ip interface brief
+
+Test the GRE tunnel:
+ping 50.50.50.2
+
+From R3:
+ping 50.50.50.1
+
+
+IMPORTANT CHECKS
+----------------
+
+⚠️ CHECK:
+tunnel destination 20.0.0.1
+
+On R1, 20.0.0.1 must be the reachable physical/WAN IP address of the opposite GRE endpoint (R3).
+
+⚠️ CHECK:
+tunnel destination 10.0.0.1
+
+On R3, 10.0.0.1 must be the reachable physical/WAN IP address of the opposite GRE endpoint (R1).
+
+⚠️ CHECK:
+ip address 50.50.50.1 255.255.255.0
+ip address 50.50.50.2 255.255.255.0
+
+Both GRE tunnel endpoints are in the same 50.50.50.0/24 network, which is correct if this is the addressing given by the practical.
+
+⚠️ IMPORTANT:
+The physical router-to-router interface IP addresses and exact interface numbers are topology-dependent. Verify that R1 can reach 20.0.0.1 and R3 can reach 10.0.0.1 before testing the GRE tunnel.
+
+NOTE:
+The commands above configure the GRE tunnel itself. If the practical requires PC0/PC1 traffic to reach PC2/PC3 through the GRE tunnel, routing to the remote LANs may also be required. Do not add routing commands unless they are specified by the topology/practical.
