@@ -34,23 +34,14 @@ enable
 configure terminal
 interface tunnel 1
 ip address 50.50.50.1 255.255.255.0
-
-⚠️ CHECK:
+no shutdown
 tunnel source fa1/1
-
-The handwritten command uses Fa1/1. The tunnel source must be the R1 interface that has reachability to R3's tunnel destination. If the topology uses another interface, replace Fa1/1 with the actual R1 interface.
-
 tunnel destination 20.0.0.1
 exit
 
-⚠️ CHECK:
 show ip int br
 
-This is a verification command. If entered while still in configuration mode, use:
-do show ip int br
 
-interface tunnel 1
-no shutdown
 exit
 
 
@@ -61,23 +52,13 @@ enable
 configure terminal
 interface tunnel 1
 ip address 50.50.50.2 255.255.255.0
-
-⚠️ CHECK:
+no shutdown
 tunnel source fa1/1
-
-The handwritten command uses Fa1/1. The tunnel source must be the R3 interface that has reachability to R1's tunnel destination. If the topology uses another interface, replace Fa1/1 with the actual R3 interface.
-
 tunnel destination 10.0.0.1
 exit
 
-⚠️ CHECK:
 show ip int br
 
-This is a verification command. If entered while still in configuration mode, use:
-do show ip int br
-
-interface tunnel 1
-no shutdown
 exit
 
 
