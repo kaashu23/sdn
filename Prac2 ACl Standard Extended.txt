@@ -1,0 +1,162 @@
+PRACTICAL 2 - STANDARD ACL AND EXTENDED ACL
+
+TOPOLOGY / ADDRESSING
+
+R1 ---------------- ISP ---------------- R3
+ |                                      |
+S1                                     S3
+ |                                      |
+PC-A                                   PC-C
+
+R1 G0/1:        192.168.10.1/24
+R1 Loopback0:   192.168.20.1/24
+R1 S0/0/0:      10.1.1.1/30
+
+ISP S0/0/0:     10.1.1.2/30
+ISP S0/0/1:     10.2.2.2/30
+ISP Loopback0:  209.165.200.225/27
+
+R3 S0/0/1:      10.2.2.1/30
+R3 G0/1:        192.168.30.1/24
+R3 Loopback0:   192.168.40.1/24
+
+PC-A:           192.168.10.3/24
+PC-A Gateway:   192.168.10.1
+
+PC-C:           192.168.30.3/24
+PC-C Gateway:   192.168.30.1
+
+
+BASIC ROUTING
+
+R1
+
+enable
+configure terminal
+interface g0/1
+ip address 192.168.10.1 255.255.255.0
+no shutdown
+exit
+interface loopback 0
+ip address 192.168.20.1 255.255.255.0
+exit
+interface s0/0/0
+ip address 10.1.1.1 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+router rip
+version 2
+network 192.168.10.0
+network 192.168.20.0
+network 10.1.1.0
+exit
+end
+
+
+ISP
+
+enable
+configure terminal
+interface s0/0/0
+ip address 10.1.1.2 255.255.255.252
+no shutdown
+exit
+interface s0/0/1
+ip address 10.2.2.2 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+interface loopback 0
+ip address 209.165.200.225 255.255.255.224
+exit
+router rip
+version 2
+network 209.165.200.224
+network 10.1.1.0
+network 10.2.2.0
+exit
+end
+
+
+R3
+
+enable
+configure terminal
+interface g0/1
+ip address 192.168.30.1 255.255.255.0
+no shutdown
+exit
+interface loopback 0
+ip address 192.168.40.1 255.255.255.0
+exit
+interface s0/0/1
+ip address 10.2.2.1 255.255.255.252
+no shutdown
+exit
+router rip
+version 2
+network 192.168.30.0
+network 192.168.40.0
+network 10.2.2.0
+exit
+end
+
+
+STANDARD ACL
+
+R3
+
+enable
+configure terminal
+access-list 1 permit 192.168.10.0 0.0.0.255
+access-list 1 permit 192.168.20.0 0.0.0.255
+access-list 1 deny any
+interface g0/1
+ip access-group 1 out
+end
+
+
+VERIFY STANDARD ACL
+
+R3
+
+show access-lists 1
+show ip interface g0/1
+
+
+EXTENDED ACL
+
+Example: Allow only HTTP traffic from PC-A to PC-C and deny other traffic.
+
+R3
+
+enable
+configure terminal
+ip access-list extended 100
+permit tcp host 192.168.10.3 host 192.168.30.3 eq 80
+deny ip any any
+exit
+interface g0/1
+ip access-group 100 out
+end
+
+
+VERIFY EXTENDED ACL
+
+R3
+
+show access-lists 100
+show ip interface g0/1
+
+
+REMOVE ACL IF NEEDED
+
+R3
+
+configure terminal
+interface g0/1
+no ip access-group 100 out
+exit
+no ip access-list extended 100
+end

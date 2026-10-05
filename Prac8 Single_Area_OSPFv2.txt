@@ -1,0 +1,182 @@
+PRACTICAL 8.2 - CONFIGURE SINGLE-AREA OSPFv2
+
+TOPOLOGY / ADDRESSING
+
+R1 -------- S1 -------- S2 -------- R2
+ |                                      |
+Lo1                                    Lo1
+
+R1 G0/0/1:        10.53.0.1/24
+R1 Loopback1:     172.16.1.1/24
+
+R2 G0/0/1:        10.53.0.2/24
+R2 Loopback1:     192.168.1.1/24
+
+OSPF Process ID:  56
+OSPF Area:        0
+R1 Router ID:     1.1.1.1
+R2 Router ID:     2.2.2.2
+
+
+R1 - BASIC CONFIGURATION
+
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+
+interface g0/0/1
+ip address 10.53.0.1 255.255.255.0
+no shutdown
+exit
+
+interface loopback 1
+ip address 172.16.1.1 255.255.255.0
+exit
+
+end
+
+
+R2 - BASIC CONFIGURATION
+
+enable
+configure terminal
+hostname R2
+no ip domain-lookup
+
+interface g0/0/1
+ip address 10.53.0.2 255.255.255.0
+no shutdown
+exit
+
+interface loopback 1
+ip address 192.168.1.1 255.255.255.0
+exit
+
+end
+
+
+R1 - OSPFv2 BASIC CONFIGURATION
+
+enable
+configure terminal
+router ospf 56
+router-id 1.1.1.1
+network 10.53.0.0 0.0.0.255 area 0
+exit
+end
+
+
+R2 - OSPFv2 BASIC CONFIGURATION
+
+enable
+configure terminal
+router ospf 56
+router-id 2.2.2.2
+network 10.53.0.0 0.0.0.255 area 0
+network 192.168.1.0 0.0.0.255 area 0
+exit
+end
+
+
+VERIFY OSPFv2
+
+R1
+
+show ip ospf neighbor
+show ip route ospf
+
+R2
+
+show ip ospf neighbor
+show ip route ospf
+
+
+TEST CONNECTIVITY
+
+R1
+
+ping 192.168.1.1
+
+R2
+
+ping 172.16.1.1
+
+
+OSPF OPTIMIZATION - R1
+
+enable
+configure terminal
+
+interface g0/0/1
+ip ospf priority 50
+ip ospf hello-interval 30
+exit
+
+ip route 0.0.0.0 0.0.0.0 loopback 1
+
+router ospf 56
+default-information originate
+auto-cost reference-bandwidth 1000
+exit
+
+end
+
+
+OSPF OPTIMIZATION - R2
+
+enable
+configure terminal
+
+interface g0/0/1
+ip ospf hello-interval 30
+exit
+
+interface loopback 1
+ip ospf network point-to-point
+exit
+
+router ospf 56
+passive-interface loopback 1
+auto-cost reference-bandwidth 1000
+exit
+
+end
+
+
+VERIFY OSPF OPTIMIZATION
+
+R1
+
+show ip ospf interface g0/0/1
+show ip route ospf
+
+R2
+
+show ip ospf interface g0/0/1
+show ip route ospf
+
+
+RESTART OSPF PROCESS AFTER REFERENCE BANDWIDTH CHANGE
+
+R1
+
+clear ip ospf process
+
+R2
+
+clear ip ospf process
+
+
+FINAL CONNECTIVITY TEST
+
+R2
+
+ping 172.16.1.1
+
+
+NOTE
+
+The PDF's command appendix uses f0/0 in some places, while the topology/addressing table uses G0/0/1. This TXT uses G0/0/1 to match the topology and addressing table for the Cisco 4221 setup.
+
+The switches are Layer-2 devices in this topology and do not require OSPF configuration.

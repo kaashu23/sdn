@@ -1,0 +1,160 @@
+PRACTICAL 9.2 - CONFIGURE AND VERIFY eBGP
+
+TOPOLOGY
+
+R1 ---------------- R2 ---------------- ISP-1 ---------------- Internet
+       Company AS 65000       ISP AS 65001          Web Server
+
+
+ADDRESSING TABLE
+
+R1
+S0/0/1       198.133.219.1/29
+
+R2
+S0/0/0       198.133.219.2/29
+S0/0/1       209.165.200.2/30  (DCE)
+
+ISP-1
+S0/0/1       209.165.200.1/30
+
+Web Server
+IP Address    10.10.10.10/32
+
+
+BGP AS NUMBERS
+
+Company / R2      AS 65000
+ISP-1              AS 65001
+
+
+==================================================
+R1 - BASIC CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+
+interface serial 0/0/1
+ip address 198.133.219.1 255.255.255.248
+no shutdown
+exit
+
+ip route 0.0.0.0 0.0.0.0 198.133.219.2
+
+end
+
+
+==================================================
+R2 - BASIC CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R2
+no ip domain-lookup
+
+interface serial 0/0/0
+ip address 198.133.219.2 255.255.255.248
+no shutdown
+exit
+
+interface serial 0/0/1
+ip address 209.165.200.2 255.255.255.252
+clock rate 128000
+no shutdown
+exit
+
+end
+
+
+==================================================
+ISP-1 - CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname ISP-1
+no ip domain-lookup
+
+interface loopback 0
+ip address 10.10.10.10 255.255.255.255
+exit
+
+interface serial 0/0/1
+ip address 209.165.200.1 255.255.255.252
+no shutdown
+exit
+
+ip route 0.0.0.0 0.0.0.0 loopback 0
+
+router bgp 65001
+bgp log-neighbor-changes
+network 0.0.0.0
+neighbor 209.165.200.2 remote-as 65000
+exit
+
+end
+
+
+==================================================
+R2 - eBGP CONFIGURATION
+==================================================
+
+enable
+configure terminal
+
+router bgp 65000
+neighbor 209.165.200.1 remote-as 65001
+network 198.133.219.0 mask 255.255.255.248
+exit
+
+end
+
+
+==================================================
+R2 - VERIFY eBGP
+==================================================
+
+show ip route
+show ip bgp
+show ip bgp summary
+
+
+==================================================
+ISP-1 - VERIFY eBGP
+==================================================
+
+show ip route
+
+
+==================================================
+R1 - TEST WEB SERVER
+==================================================
+
+ping 10.10.10.10
+
+
+==================================================
+SAVE CONFIGURATION
+==================================================
+
+R1
+copy running-config startup-config
+
+R2
+copy running-config startup-config
+
+ISP-1
+copy running-config startup-config
+
+
+IMPORTANT
+
+R2 S0/0/1 is the DCE interface, so clock rate is configured on R2 only.
+
+The PDF's Part 2 heading says to configure eBGP on R1, but the actual eBGP commands in the lab configure R2 as AS 65000 and R2 as the eBGP peer of ISP-1 AS 65001. The commands above follow the actual topology and command set from the PDF.
+
+The default route on R1 is required so that R1 can use R2 as its path to the ISP/web server.

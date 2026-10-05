@@ -1,0 +1,435 @@
+PRACTICAL 9.1 - IMPLEMENT MP-BGP
+
+TOPOLOGY
+
+                         R2
+                    ISP1 - AS 500
+                   /           \
+                  /             \
+        R1 --------------------- R3
+ Customer - AS 1000            ISP1 - AS 300
+              |                   |
+           Loopbacks           Loopbacks
+
+
+ADDRESSING TABLE
+
+R1 - AS 1000
+G0/0/0       10.1.2.1/24
+             2001:db8:acad:1012::1/64
+             FE80::1:1
+
+S0/1/0       10.1.3.1/25
+             2001:db8:acad:1013::1/64
+             FE80::1:2
+
+S0/1/1       10.1.3.129/25
+             2001:db8:acad:1014::1/64
+             FE80::1:3
+
+Loopback0    192.168.1.1/27
+             2001:db8:acad:1000::1/64
+             FE80::1:4
+
+Loopback1    192.168.1.65/26
+             2001:db8:acad:1001::1/64
+             FE80::1:5
+
+
+R2 - AS 500
+G0/0/0       10.1.2.2/24
+             2001:db8:acad:1012::2/64
+             FE80::2:1
+
+G0/0/1       10.2.3.2/24
+             2001:db8:acad:1023::2/64
+             FE80::2:2
+
+Loopback0    192.168.2.1/27
+             2001:db8:acad:2000::1/64
+             FE80::2:3
+
+Loopback1    192.168.2.65/26
+             2001:db8:acad:2001::1/64
+             FE80::2:4
+
+
+R3 - AS 300
+G0/0/0       10.2.3.3/24
+             2001:db8:acad:1023::3/64
+             FE80::3:1
+
+S0/1/0       10.1.3.3/25
+             2001:db8:acad:1013::3/64
+             FE80::3:2
+
+S0/1/1       10.1.3.130/25
+             2001:db8:acad:1014::3/64
+             FE80::3:3
+
+Loopback0    192.168.3.1/27
+             2001:db8:acad:3000::1/64
+             FE80::3:4
+
+Loopback1    192.168.3.65/26
+             2001:db8:acad:3001::1/64
+             FE80::3:5
+
+
+==================================================
+R1 - BASIC CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R1
+no ip domain-lookup
+
+interface loopback 0
+ip address 192.168.1.1 255.255.255.224
+ipv6 address FE80::1:4 link-local
+ipv6 address 2001:DB8:ACAD:1000::1/64
+no shutdown
+exit
+
+interface loopback 1
+ip address 192.168.1.65 255.255.255.192
+ipv6 address FE80::1:5 link-local
+ipv6 address 2001:DB8:ACAD:1001::1/64
+no shutdown
+exit
+
+interface g0/0/0
+ip address 10.1.2.1 255.255.255.0
+ipv6 address FE80::1:1 link-local
+ipv6 address 2001:DB8:ACAD:1012::1/64
+no shutdown
+exit
+
+interface serial 0/1/0
+ip address 10.1.3.1 255.255.255.128
+ipv6 address FE80::1:2 link-local
+ipv6 address 2001:DB8:ACAD:1013::1/64
+no shutdown
+exit
+
+interface serial 0/1/1
+ip address 10.1.3.129 255.255.255.128
+ipv6 address FE80::1:3 link-local
+ipv6 address 2001:DB8:ACAD:1014::1/64
+no shutdown
+exit
+
+end
+
+
+==================================================
+R2 - BASIC CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R2
+no ip domain-lookup
+
+interface loopback 0
+ip address 192.168.2.1 255.255.255.224
+ipv6 address FE80::2:3 link-local
+ipv6 address 2001:DB8:ACAD:2000::1/64
+no shutdown
+exit
+
+interface loopback 1
+ip address 192.168.2.65 255.255.255.192
+ipv6 address FE80::2:4 link-local
+ipv6 address 2001:DB8:ACAD:2001::1/64
+no shutdown
+exit
+
+interface g0/0/0
+ip address 10.1.2.2 255.255.255.0
+ipv6 address FE80::2:1 link-local
+ipv6 address 2001:DB8:ACAD:1012::2/64
+no shutdown
+exit
+
+interface g0/0/1
+ip address 10.2.3.2 255.255.255.0
+ipv6 address FE80::2:2 link-local
+ipv6 address 2001:DB8:ACAD:1023::2/64
+no shutdown
+exit
+
+end
+
+
+==================================================
+R3 - BASIC CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R3
+no ip domain-lookup
+
+interface loopback 0
+ip address 192.168.3.1 255.255.255.224
+ipv6 address FE80::3:4 link-local
+ipv6 address 2001:DB8:ACAD:3000::1/64
+no shutdown
+exit
+
+interface loopback 1
+ip address 192.168.3.65 255.255.255.192
+ipv6 address FE80::3:5 link-local
+ipv6 address 2001:DB8:ACAD:3001::1/64
+no shutdown
+exit
+
+interface g0/0/0
+ip address 10.2.3.3 255.255.255.0
+ipv6 address FE80::3:1 link-local
+ipv6 address 2001:DB8:ACAD:1023::3/64
+no shutdown
+exit
+
+interface serial 0/1/0
+ip address 10.1.3.3 255.255.255.128
+ipv6 address FE80::3:2 link-local
+ipv6 address 2001:DB8:ACAD:1013::3/64
+no shutdown
+exit
+
+interface serial 0/1/1
+ip address 10.1.3.130 255.255.255.128
+ipv6 address FE80::3:3 link-local
+ipv6 address 2001:DB8:ACAD:1014::3/64
+no shutdown
+exit
+
+end
+
+
+==================================================
+R1 - MP-BGP CONFIGURATION
+==================================================
+
+enable
+configure terminal
+ipv6 unicast-routing
+
+router bgp 1000
+bgp router-id 1.1.1.1
+
+neighbor 10.1.2.2 remote-as 500
+neighbor 10.1.3.3 remote-as 300
+neighbor 10.1.3.130 remote-as 300
+
+neighbor 2001:db8:acad:1012::2 remote-as 500
+neighbor 2001:db8:acad:1013::3 remote-as 300
+neighbor 2001:db8:acad:1014::3 remote-as 300
+
+address-family ipv4 unicast
+neighbor 10.1.2.2 activate
+neighbor 10.1.3.3 activate
+neighbor 10.1.3.130 activate
+exit
+
+address-family ipv6 unicast
+neighbor 2001:db8:acad:1012::2 activate
+neighbor 2001:db8:acad:1013::3 activate
+neighbor 2001:db8:acad:1014::3 activate
+exit
+
+end
+
+
+==================================================
+R2 - MP-BGP CONFIGURATION
+==================================================
+
+enable
+configure terminal
+ipv6 unicast-routing
+
+router bgp 500
+bgp router-id 2.2.2.2
+
+neighbor 10.1.2.1 remote-as 1000
+neighbor 10.2.3.3 remote-as 300
+
+neighbor 2001:db8:acad:1012::1 remote-as 1000
+neighbor 2001:db8:acad:1023::3 remote-as 300
+
+address-family ipv4 unicast
+neighbor 10.1.2.1 activate
+neighbor 10.2.3.3 activate
+exit
+
+address-family ipv6 unicast
+neighbor 2001:db8:acad:1012::1 activate
+neighbor 2001:db8:acad:1023::3 activate
+exit
+
+end
+
+
+==================================================
+R3 - MP-BGP CONFIGURATION
+==================================================
+
+enable
+configure terminal
+ipv6 unicast-routing
+
+router bgp 300
+bgp router-id 3.3.3.3
+
+neighbor 10.2.3.2 remote-as 500
+neighbor 10.1.3.1 remote-as 1000
+neighbor 10.1.3.129 remote-as 1000
+
+neighbor 2001:db8:acad:1023::2 remote-as 500
+neighbor 2001:db8:acad:1013::1 remote-as 1000
+neighbor 2001:db8:acad:1014::1 remote-as 1000
+
+address-family ipv4 unicast
+neighbor 10.1.3.1 activate
+neighbor 10.1.3.129 activate
+neighbor 10.2.3.2 activate
+exit
+
+address-family ipv6 unicast
+neighbor 2001:db8:acad:1023::2 activate
+neighbor 2001:db8:acad:1013::1 activate
+neighbor 2001:db8:acad:1014::1 activate
+exit
+
+end
+
+
+==================================================
+R1 - ADVERTISE IPv4 AND IPv6 PREFIXES
+==================================================
+
+enable
+configure terminal
+
+router bgp 1000
+
+address-family ipv4 unicast
+network 192.168.1.0 mask 255.255.255.224
+network 192.168.1.64 mask 255.255.255.192
+exit
+
+address-family ipv6 unicast
+network 2001:db8:acad:1000::/64
+network 2001:db8:acad:1001::/64
+exit
+
+end
+
+
+==================================================
+R2 - ADVERTISE IPv4 AND IPv6 PREFIXES
+==================================================
+
+enable
+configure terminal
+
+router bgp 500
+
+address-family ipv4 unicast
+network 192.168.2.0 mask 255.255.255.224
+network 192.168.2.64 mask 255.255.255.192
+exit
+
+address-family ipv6 unicast
+network 2001:db8:acad:2000::/64
+network 2001:db8:acad:2001::/64
+exit
+
+end
+
+
+==================================================
+R3 - ADVERTISE IPv4 AND IPv6 PREFIXES
+==================================================
+
+enable
+configure terminal
+
+router bgp 300
+
+address-family ipv4 unicast
+network 192.168.3.0 mask 255.255.255.224
+network 192.168.3.64 mask 255.255.255.192
+exit
+
+address-family ipv6 unicast
+network 2001:db8:acad:3000::/64
+network 2001:db8:acad:3001::/64
+exit
+
+end
+
+
+==================================================
+R2 - VERIFY MP-BGP
+==================================================
+
+show bgp all neighbors
+show bgp ipv4 unicast summary
+show bgp ipv6 unicast summary
+show bgp ipv4 unicast
+show bgp ipv6 unicast
+show bgp ipv4 unicast 192.168.1.0 255.255.255.224
+show bgp ipv4 unicast neighbors 10.1.2.1 advertised-routes
+show bgp ipv6 unicast neighbors 2001:db8:acad:1012::1 advertised-routes
+show ip route bgp | begin Gateway
+show ipv6 route bgp | section 2001
+
+
+==================================================
+R1 - IPv6 ROUTE SUMMARIZATION
+==================================================
+
+enable
+configure terminal
+
+router bgp 1000
+address-family ipv6 unicast
+aggregate-address 2001:db8:acad:1000::/52 summary-only
+exit
+
+end
+
+
+==================================================
+VERIFY IPv6 SUMMARY ROUTE
+==================================================
+
+R2
+
+show bgp ipv6 unicast | begin Network
+show ipv6 route bgp | section 2001
+
+
+R3
+
+show bgp ipv6 unicast | begin Network
+show ipv6 route bgp | section 2001
+
+
+==================================================
+SAVE CONFIGURATION
+==================================================
+
+R1
+copy running-config startup-config
+
+R2
+copy running-config startup-config
+
+R3
+copy running-config startup-config

@@ -1,0 +1,215 @@
+PRACTICAL 8.3 - MULTI-AREA OSPFv2
+
+TOPOLOGY
+
+R1 ---------------- R2 ---------------- R3
+Area 1               Area 0               Area 3
+
+
+ADDRESSING TABLE
+
+R1
+Lo0        209.165.200.225/30
+Lo1        192.168.1.1/24
+Lo2        192.168.2.1/24
+S0/0/0     192.168.12.1/30  (DCE)
+
+R2
+Lo6        192.168.6.1/24
+S0/0/0     192.168.12.2/30
+S0/0/1     192.168.23.1/30  (DCE)
+
+R3
+Lo4        192.168.4.1/24
+Lo5        192.168.5.1/24
+S0/0/1     192.168.23.2/30
+
+OSPF PROCESS ID: 1
+R1 ROUTER ID: 1.1.1.1
+R2 ROUTER ID: 2.2.2.2
+R3 ROUTER ID: 3.3.3.3
+
+
+==================================================
+R1 - CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R1
+
+interface loopback 0
+ip address 209.165.200.225 255.255.255.252
+exit
+
+interface loopback 1
+ip address 192.168.1.1 255.255.255.0
+exit
+
+interface loopback 2
+ip address 192.168.2.1 255.255.255.0
+exit
+
+interface serial 0/0/0
+ip address 192.168.12.1 255.255.255.252
+clock rate 128000
+bandwidth 128
+no shutdown
+exit
+
+router ospf 1
+router-id 1.1.1.1
+network 192.168.1.0 0.0.0.255 area 1
+network 192.168.2.0 0.0.0.255 area 1
+network 192.168.12.0 0.0.0.3 area 0
+passive-interface loopback 1
+passive-interface loopback 2
+exit
+
+ip route 0.0.0.0 0.0.0.0 loopback 0
+
+router ospf 1
+default-information originate
+exit
+
+end
+
+
+==================================================
+R2 - CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R2
+
+interface loopback 6
+ip address 192.168.6.1 255.255.255.0
+exit
+
+interface serial 0/0/0
+ip address 192.168.12.2 255.255.255.252
+bandwidth 128
+no shutdown
+exit
+
+interface serial 0/0/1
+ip address 192.168.23.1 255.255.255.252
+clock rate 128000
+bandwidth 128
+no shutdown
+exit
+
+router ospf 1
+router-id 2.2.2.2
+network 192.168.6.0 0.0.0.255 area 3
+network 192.168.12.0 0.0.0.3 area 0
+network 192.168.23.0 0.0.0.3 area 3
+passive-interface loopback 6
+exit
+
+end
+
+
+==================================================
+R3 - CONFIGURATION
+==================================================
+
+enable
+configure terminal
+hostname R3
+
+interface loopback 4
+ip address 192.168.4.1 255.255.255.0
+exit
+
+interface loopback 5
+ip address 192.168.5.1 255.255.255.0
+exit
+
+interface serial 0/0/1
+ip address 192.168.23.2 255.255.255.252
+bandwidth 128
+no shutdown
+exit
+
+router ospf 1
+router-id 3.3.3.3
+network 192.168.4.0 0.0.0.255 area 3
+network 192.168.5.0 0.0.0.255 area 3
+network 192.168.23.0 0.0.0.3 area 3
+passive-interface loopback 4
+passive-interface loopback 5
+exit
+
+end
+
+
+==================================================
+VERIFY OSPF
+==================================================
+
+R1
+show ip protocols
+show ip ospf neighbor
+show ip ospf interface brief
+
+R2
+show ip protocols
+show ip ospf neighbor
+show ip ospf interface brief
+
+R3
+show ip protocols
+show ip ospf neighbor
+show ip ospf interface brief
+
+
+==================================================
+CONNECTIVITY TEST
+==================================================
+
+R1
+ping 192.168.12.2
+
+R2
+ping 192.168.12.1
+ping 192.168.23.2
+
+R3
+ping 192.168.23.1
+
+
+==================================================
+OSPF ROUTING TEST
+==================================================
+
+R1
+show ip route ospf
+ping 192.168.6.1
+ping 192.168.4.1
+ping 192.168.5.1
+
+R2
+show ip route ospf
+ping 192.168.1.1
+ping 192.168.4.1
+
+R3
+show ip route ospf
+ping 192.168.1.1
+ping 192.168.2.1
+
+
+==================================================
+SAVE CONFIGURATION
+==================================================
+
+R1
+copy running-config startup-config
+
+R2
+copy running-config startup-config
+
+R3
+copy running-config startup-config
