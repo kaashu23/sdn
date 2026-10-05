@@ -39,7 +39,6 @@ ip nat outside
 ip nat inside source static 192.168.1.2 10.0.0.1
 ip nat inside source static 192.168.1.3 10.0.0.1
 ip nat outside source static 10.0.0.1 10.0.0.2
-
 exit
 
 
@@ -47,43 +46,15 @@ exit
 end
 
 
-DEFAULT ROUTE
--------------
+R2 CONFIGURATION
 
-⚠️ CHECK:
-If R1's serial interface is 10.0.0.1 and the next-hop router is 10.0.0.2, the default route would normally be:
-
-enable
-configure terminal
-ip route 0.0.0.0 0.0.0.0 10.0.0.2
-end
-
-Verify that 10.0.0.2 is actually the next-hop router before using this command.
-
-
-VERIFICATION
-------------
-
-show ip nat statistics
-show ip nat translations
-
-
-IMPORTANT CHECKS
-----------------
-
-⚠️ NAT GLOBAL ADDRESS:
-Do not use 10.0.0.1 as a static NAT global address if 10.0.0.1 is already assigned to R1's outside interface. Confirm the public/global address intended by the practical.
-
-⚠️ TWO PCs / SAME GLOBAL:
-These two commands cannot normally provide separate one-to-one static NAT translations if both use the same global address:
-
-ip nat inside source static 192.168.1.2 10.0.0.1
-ip nat inside source static 192.168.1.3 10.0.0.1
-
-Use different global addresses if separate static mappings are required.
-
-⚠️ ROUTING:
-The default route is required only if R1 needs to send unknown destinations toward the next-hop router. Confirm the R1-R2 serial addressing first.
-
-⚠️ INTERFACES:
-Fa0/0 and S0/0/0 must match the actual interfaces in the router model/topology.
+interface f0/0
+ip nat inside
+exit
+interface s0/0/0
+ip nat outside
+ip nat inside source static 192.168.2.2 10.0.0.2
+ip nat outside source static 10.0.0.2 10.0.0.1
+exit
+show ip nat stastistics
+show ip nat tr
